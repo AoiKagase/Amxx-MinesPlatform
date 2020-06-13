@@ -44,7 +44,7 @@
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Lasermine"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"4.02"
+#define VERSION 					"4.03"
 
 #define CVAR_TAG					"mines_lm"
 
@@ -72,7 +72,7 @@ enum _:HIT_PLAYER
 //
 // CVAR SETTINGS
 //
-enum CVAR_SETTING
+enum _:CVAR_SETTING
 {
 	CVAR_MAX_HAVE			,    	// Max having ammo.
 	CVAR_START_HAVE			,    	// Start having ammo.
@@ -107,9 +107,10 @@ enum CVAR_SETTING
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
 	CVAR_DIFENCE_SHIELD		,		// Shield hit.
 	CVAR_REALISTIC_DETAIL	,		// Spark Effect.
+	CVAR_MAX_COUNT			,
 };
 
-enum CVAR_VALUE
+enum _:CVAR_VALUE
 {
 	VL_MAX_HAVE				,    	// Max having ammo.
 	VL_START_HAVE			,    	// Start having ammo.
@@ -230,14 +231,16 @@ public plugin_init()
 		gRecycleMine[i] = CreateStack(1);
 #endif
 
-	bind_cvars();
-
 	create_cvar("mines_lasermine", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
 	// Multi Language Dictionary.
 	mines_register_dictionary("mines/mines_lm.txt");
 #if AMXX_VERSION_NUM > 182
+	bind_cvars();
 	AutoExecConfig(true, "mines_cvars_lm", "mines");
+	for (new i = 0; i < CVAR_MAX_COUNT; i++)
+		if(gCvar[i])
+			hook_cvar_change(gCvar[i], "hook_cvars");
 #endif
 	return PLUGIN_CONTINUE;
 }
@@ -258,6 +261,63 @@ public plugin_cfg()
 		server_cmd("exec %s", file);
 		server_exec();
 	}
+
+	bind_cvars();
+}
+#else
+public hook_cvars(pcvar, const old_value[], const new_value[])
+{
+	for(new i = 0; i < CVAR_MAX_COUNT; i++)
+	{
+		if (pcvar == gCvar[i])
+		{
+			switch(i)
+			{
+				case CVAR_START_HAVE		: gCvarValue[VL_START_HAVE]			= str_to_num(new_value);
+				case CVAR_MAX_HAVE			: gCvarValue[VL_MAX_HAVE]			= str_to_num(new_value);
+#if defined BIOHAZARD_SUPPORT
+				case CVAR_NOROUND			: gCvarValue[VL_NOROUND]			= str_to_num(new_value);
+#endif
+				case CVAR_MAX_DEPLOY		: gCvarValue[VL_MAX_DEPLOY]			= str_to_num(new_value);
+				case CVAR_TEAM_MAX			: gCvarValue[VL_TEAM_MAX]			= str_to_num(new_value);
+				case CVAR_BUY_MODE			: gCvarValue[VL_BUY_MODE]			= str_to_num(new_value);
+				case CVAR_BUY_ZONE			: gCvarValue[VL_BUY_ZONE]			= str_to_num(new_value);
+				case CVAR_COST				: gCvarValue[VL_COST]				= str_to_num(new_value);
+				case CVAR_FRAG_MONEY		: gCvarValue[VL_FRAG_MONEY]			= str_to_num(new_value);
+				case CVAR_MINE_BROKEN		: gCvarValue[VL_MINE_BROKEN]		= str_to_num(new_value);
+				case CVAR_ALLOW_PICKUP		: gCvarValue[VL_ALLOW_PICKUP]		= str_to_num(new_value);
+				case CVAR_DEATH_REMOVE		: gCvarValue[VL_DEATH_REMOVE]		= str_to_num(new_value);
+				case CVAR_MINE_GLOW			: gCvarValue[VL_MINE_GLOW]			= str_to_num(new_value);
+				case CVAR_MINE_GLOW_MODE	: gCvarValue[VL_MINE_GLOW_MODE] 	= str_to_num(new_value);
+
+				case CVAR_MINE_HEALTH		: gCvarValue[VL_MINE_HEALTH]		= str_to_float(new_value);
+				case CVAR_LASER_ACTIVATE	: gCvarValue[VL_LASER_ACTIVATE]		= str_to_float(new_value);
+				case CVAR_EXPLODE_RADIUS	: gCvarValue[VL_EXPLODE_RADIUS]		= str_to_float(new_value);
+				case CVAR_EXPLODE_DMG		: gCvarValue[VL_EXPLODE_DMG]		= str_to_float(new_value);
+
+				case CVAR_CBT				: copy(gCvarValue[VL_CBT], 				charsmax(gCvarValue[VL_CBT]), new_value);
+				case CVAR_MINE_GLOW_TR		: copy(gCvarValue[VL_MINE_GLOW_TR], 	charsmax(gCvarValue[VL_MINE_GLOW_TR]) - 1, new_value);// last comma - 1
+				case CVAR_MINE_GLOW_CT		: copy(gCvarValue[VL_MINE_GLOW_CT], 	charsmax(gCvarValue[VL_MINE_GLOW_CT]) - 1, new_value);// last comma - 1
+
+				case CVAR_LASER_VISIBLE		: gCvarValue[VL_LASER_VISIBLE]		= str_to_num(new_value);   	// Laser line Visiblity. 0 = off, 1 = on.
+				case CVAR_LASER_BRIGHT		: gCvarValue[VL_LASER_BRIGHT]		= str_to_num(new_value);   	// Laser line brightness.
+				case CVAR_LASER_WIDTH		: gCvarValue[VL_LASER_WIDTH]		= str_to_num(new_value);	// Laser line width.
+				case CVAR_LASER_COLOR		: gCvarValue[VL_LASER_COLOR]		= str_to_num(new_value);	// Laser line color. 0 = team color, 1 = green
+				case CVAR_LASER_DMG_MODE	: gCvarValue[VL_LASER_DMG_MODE]		= str_to_num(new_value);   	// Laser line damage mode. 0 = frame rate dmg, 1 = once dmg, 2 = 1second dmg.
+				case CVAR_DIFENCE_SHIELD	: gCvarValue[VL_DIFENCE_SHIELD]		= str_to_num(new_value);	// Shield hit.
+				case CVAR_REALISTIC_DETAIL	: gCvarValue[VL_REALISTIC_DETAIL] 	= str_to_num(new_value);	// Spark Effect.
+
+				case CVAR_LASER_DMG			: gCvarValue[VL_LASER_DMG]			= str_to_float(new_value); 	// Laser hit Damage.
+				case CVAR_LASER_DMG_DPS		: gCvarValue[VL_LASER_DMG_DPS]		= str_to_float(new_value); 	// Laser line damage mode 2 only, damage/seconds. default 1 (sec)
+				case CVAR_LASER_RANGE		: gCvarValue[VL_LASER_RANGE]		= str_to_float(new_value);	// Laserbeam range.
+
+				case CVAR_LASER_COLOR_TR	: copy(gCvarValue[VL_LASER_COLOR_TR],	charsmax(gCvarValue[VL_LASER_COLOR_TR]), new_value);  	// Laser line color. 0 = team color, 1 = green
+				case CVAR_LASER_COLOR_CT	: copy(gCvarValue[VL_LASER_COLOR_CT],	charsmax(gCvarValue[VL_LASER_COLOR_CT]), new_value);  	// Laser line color. 0 = team color, 1 = green
+			}
+			break;
+		}
+	}
+	update_mines_parameter();
 }
 #endif
 
@@ -299,7 +359,11 @@ bind_cvars()
 	bind_pcvar_float	(gCvar[CVAR_LASER_RANGE], 		gCvarValue[VL_LASER_RANGE]);		// Laserbeam range.
 	bind_pcvar_string	(gCvar[CVAR_LASER_COLOR_TR], 	gCvarValue[VL_LASER_COLOR_TR],	charsmax(gCvarValue[VL_LASER_COLOR_TR]));  	// Laser line color. 0 = team color, 1 = green
 	bind_pcvar_string	(gCvar[CVAR_LASER_COLOR_CT], 	gCvarValue[VL_LASER_COLOR_CT],	charsmax(gCvarValue[VL_LASER_COLOR_CT]));  	// Laser line color. 0 = team color, 1 = green
+	update_mines_parameter();
+}
 
+update_mines_parameter()
+{
 	gMinesData[BUY_TEAM]			=	_:get_team_code(gCvarValue[VL_CBT]);
 	gMinesData[GLOW_COLOR_TR]		=	get_cvar_to_color(gCvarValue[VL_MINE_GLOW_TR]);
 	gMinesData[GLOW_COLOR_CT]		=	get_cvar_to_color(gCvarValue[VL_MINE_GLOW_CT]);
@@ -329,7 +393,6 @@ bind_cvars()
 	// parameter: this mines id, common mines data, model path.
 	register_mines_data(gMinesId, gMinesData, gResources[MODELS]);
 }
-
 //====================================================
 //  PLUGIN END
 //====================================================

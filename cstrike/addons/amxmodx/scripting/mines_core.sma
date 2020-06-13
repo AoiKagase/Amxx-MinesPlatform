@@ -43,7 +43,7 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define AUTHOR 					"Aoi.Kagase"
-#define VERSION 				"0.03"
+#define VERSION 				"0.04"
 
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL		ADMIN_LEVEL_H

@@ -40,7 +40,7 @@
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Claymore"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"0.03"
+#define VERSION 					"0.04"
 
 #define CVAR_TAG					"mines_cm"
 
@@ -97,6 +97,7 @@ enum _:CVAR_SETTING
 	CVAR_CM_WIRE_COLOR		,
 	CVAR_CM_WIRE_COLOR_T	,
 	CVAR_CM_WIRE_COLOR_CT	,
+	CVAR_MAX_COUNT			,
 };
 
 enum _:CVAR_VALUE
@@ -213,14 +214,20 @@ public plugin_init()
 	gCvar[CVAR_CM_WIRE_COLOR_T] = create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),			"255,255,255"	);	// Team-Color for Terrorist. default:red (R,G,B)
 	gCvar[CVAR_CM_WIRE_COLOR_CT]= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),			"255,255,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 
-	bind_cvars();
-
 	create_cvar("mines_claymore", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+
+	gMinesId 					= register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
 
 	// Multi Language Dictionary.
 	mines_register_dictionary("mines/mines_cm.txt");
+
 #if AMXX_VERSION_NUM > 182
+	bind_cvars();
 	AutoExecConfig(true, "mines_cvars_cm", "mines");
+
+	for (new i = 0; i < CVAR_MAX_COUNT; i++)
+		if(gCvar[i])
+			hook_cvar_change(gCvar[i], "hook_cvars");
 #endif
 	return PLUGIN_CONTINUE;
 }
@@ -241,6 +248,60 @@ public plugin_cfg()
 		server_cmd("exec %s", file);
 		server_exec();
 	}
+	bind_cvars();
+}
+#else
+public hook_cvars(pcvar, const old_value[], const new_value[])
+{
+	for(new i = 0; i < CVAR_MAX_COUNT; i++)
+	{
+		if (pcvar == gCvar[i])
+		{
+			switch(i)
+			{
+				case CVAR_START_HAVE		: gCvarValue[VALUE_START_HAVE]		= str_to_num(new_value);
+				case CVAR_MAX_HAVE			: gCvarValue[VALUE_MAX_HAVE]		= str_to_num(new_value);
+#if defined BIOHAZARD_SUPPORT
+				case CVAR_NOROUND			: gCvarValue[VALUE_NOROUND]			= str_to_num(new_value);
+#endif
+				case CVAR_MAX_DEPLOY		: gCvarValue[VALUE_MAX_DEPLOY]		= str_to_num(new_value);
+				case CVAR_TEAM_MAX			: gCvarValue[VALUE_TEAM_MAX]		= str_to_num(new_value);
+				case CVAR_BUY_MODE			: gCvarValue[VALUE_BUY_MODE]		= str_to_num(new_value);
+				case CVAR_BUY_ZONE			: gCvarValue[VALUE_BUY_ZONE]		= str_to_num(new_value);
+				case CVAR_COST				: gCvarValue[VALUE_COST]			= str_to_num(new_value);
+				case CVAR_FRAG_MONEY		: gCvarValue[VALUE_FRAG_MONEY]		= str_to_num(new_value);
+				case CVAR_MINE_BROKEN		: gCvarValue[VALUE_MINE_BROKEN]		= str_to_num(new_value);
+				case CVAR_ALLOW_PICKUP		: gCvarValue[VALUE_ALLOW_PICKUP]	= str_to_num(new_value);
+				case CVAR_DEATH_REMOVE		: gCvarValue[VALUE_DEATH_REMOVE]	= str_to_num(new_value);
+				case CVAR_MINE_GLOW			: gCvarValue[VALUE_MINE_GLOW]		= str_to_num(new_value);
+				case CVAR_MINE_GLOW_MODE	: gCvarValue[VALUE_MINE_GLOW_MODE]	= str_to_num(new_value);
+				case CVAR_CM_WIRE_VISIBLE	: gCvarValue[VALUE_CM_WIRE_VISIBLE]	= str_to_num(new_value);
+				case CVAR_CM_WIRE_COLOR		: gCvarValue[VALUE_CM_WIRE_COLOR]	= str_to_num(new_value);
+				case CVAR_CM_TRIAL_FREQ		: gCvarValue[VALUE_CM_TRIAL_FREQ]	= str_to_num(new_value);
+				case CVAR_CM_WIRE_WIDTH		: gCvarValue[VALUE_CM_WIRE_WIDTH]	= str_to_float(new_value);
+				case CVAR_CM_WIRE_BRIGHT	: gCvarValue[VALUE_CM_WIRE_BRIGHT]	= str_to_float(new_value);
+				case CVAR_MINE_HEALTH		: gCvarValue[VALUE_MINE_HEALTH]		= str_to_float(new_value);
+				case CVAR_CM_ACTIVATE		: gCvarValue[VALUE_CM_ACTIVATE]		= str_to_float(new_value);
+				case CVAR_EXPLODE_RADIUS	: gCvarValue[VALUE_EXPLODE_RADIUS]	= str_to_float(new_value);
+				case CVAR_EXPLODE_DMG		: gCvarValue[VALUE_EXPLODE_DMG]		= str_to_float(new_value);
+				case CVAR_CM_WIRE_RANGE		: gCvarValue[VALUE_CM_WIRE_RANGE]	= str_to_float(new_value);
+
+				case CVAR_CBT				: copy(gCvarValue[VALUE_CBT], 				charsmax(gCvarValue[VALUE_CBT])				   , new_value);
+				case CVAR_MINE_GLOW_TR		: copy(gCvarValue[VALUE_MINE_GLOW_TR],		charsmax(gCvarValue[VALUE_MINE_GLOW_TR]) 	- 1, new_value);// last comma - 1
+				case CVAR_MINE_GLOW_CT		: copy(gCvarValue[VALUE_MINE_GLOW_CT],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1, new_value);// last comma - 1
+				case CVAR_CM_CENTER_PITCH	: copy(gCvarValue[VALUE_CM_CENTER_PITCH],	charsmax(gCvarValue[VALUE_CM_CENTER_PITCH]) - 1, new_value);// last comma - 1
+				case CVAR_CM_CENTER_YAW		: copy(gCvarValue[VALUE_CM_CENTER_YAW],		charsmax(gCvarValue[VALUE_CM_CENTER_YAW]) 	- 1, new_value);// last comma - 1
+				case CVAR_CM_LEFT_PITCH		: copy(gCvarValue[VALUE_CM_LEFT_PITCH],		charsmax(gCvarValue[VALUE_CM_LEFT_PITCH]) 	- 1, new_value);// last comma - 1
+				case CVAR_CM_LEFT_YAW		: copy(gCvarValue[VALUE_CM_LEFT_YAW],		charsmax(gCvarValue[VALUE_CM_LEFT_YAW]) 	- 1, new_value);// last comma - 1
+				case CVAR_CM_RIGHT_PITCH	: copy(gCvarValue[VALUE_CM_RIGHT_PITCH],	charsmax(gCvarValue[VALUE_CM_RIGHT_PITCH]) 	- 1, new_value);// last comma - 1
+				case CVAR_CM_RIGHT_YAW		: copy(gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_CM_RIGHT_YAW]) 	- 1, new_value);// last comma - 1
+				case CVAR_CM_WIRE_COLOR_T	: copy(gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T]) - 1, new_value);// last comma - 1
+				case CVAR_CM_WIRE_COLOR_CT	: copy(gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1, new_value);// last comma - 1
+			}
+			break;
+		}
+	}
+	update_mines_parameter();
 }
 #endif
 
@@ -286,6 +347,11 @@ bind_cvars()
 	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_CT],	gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1);// last comma - 1
 
 
+	update_mines_parameter();
+}
+
+update_mines_parameter()
+{
 	gMinesData[AMMO_HAVE_START] =	gCvarValue[VALUE_START_HAVE];
 	gMinesData[AMMO_HAVE_MAX]	=	gCvarValue[VALUE_MAX_HAVE];
 #if defined BIOHAZARD_SUPPORT
@@ -309,8 +375,6 @@ bind_cvars()
 	gMinesData[BUY_TEAM] 		=	_:get_team_code(gCvarValue[VALUE_CBT]);
 	gMinesData[GLOW_COLOR_TR]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_TR]);
 	gMinesData[GLOW_COLOR_CT]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_CT]);
-
-	gMinesId 					=	register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
 
 	register_mines_data(gMinesId, gMinesData, gEntModel);
 }
