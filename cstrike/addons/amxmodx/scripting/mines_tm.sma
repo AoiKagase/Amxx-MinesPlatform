@@ -42,7 +42,7 @@
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Tripmine"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"0.04"
+#define VERSION 					"0.05"
 #define CVAR_TAG					"mines_tm"
 
 #define LANG_KEY_PLANT_WALL   		"TM_PLANT_WALL"

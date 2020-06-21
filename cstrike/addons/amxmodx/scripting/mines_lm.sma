@@ -45,7 +45,7 @@
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Lasermine"
 #define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"4.03"
+#define VERSION 					"4.04"
 
 #define CVAR_TAG					"mines_lm"
 
