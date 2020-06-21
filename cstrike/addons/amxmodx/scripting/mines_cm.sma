@@ -17,6 +17,7 @@
 #include <fun>
 #include <hamsandwich>
 #include <xs>
+#include <mines_common>
 #include <mines_natives>
 #include <beams>
 #if defined ZP_SUPPORT
@@ -432,7 +433,6 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 
 	// Save results to be used later.
 	set_pev(iEnt, MINES_OWNER, uID );
-	set_pev(iEnt, MINES_TEAM, int:cs_get_user_team(uID));
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
@@ -791,7 +791,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 draw_laserline(iEnt, const Float:vEndOrigin[3])
 {
 	new Float:tcolor[3];
-	new CsTeams:teamid = CsTeams:pev(iEnt, MINES_TEAM);
+	new CsTeams:teamid = mines_get_owner_team(iEnt);
 
 	// Color mode. 0 = team color.
 	if(gCvarValue[VALUE_CM_WIRE_COLOR] == 0)

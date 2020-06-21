@@ -15,7 +15,6 @@
 #if AMXX_VERSION_NUM < 182
 	#assert "AMX Mod X v1.8.2 or greater library required!"
 #endif
-
 #if AMXX_VERSION_NUM < 190
 #include <mines_182>
 #endif
@@ -54,8 +53,7 @@
 #define IsPlayer(%1) ( 1 <= %1 <= 32 ) 
 
 // Lasermine Data Save Area.
-#define MINES_TEAM					pev_iuser1
-#define MINES_OWNER					pev_iuser2
+#define MINES_OWNER					pev_iuser1
 #define MINES_OWNER_ID				pev_message
 #define MINES_STEP					pev_iuser3
 #define MAX_CLASS_LENGTH			16
@@ -188,3 +186,5 @@ enum _:PICKUP_MODE
 	ALLOW_FRIENDLY			,
 	ALLOW_ENEMY				,
 }
+
+#include <mines_common>

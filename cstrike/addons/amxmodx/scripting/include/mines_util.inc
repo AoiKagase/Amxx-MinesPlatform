@@ -10,8 +10,6 @@
 #endif
 #define _mines_util_included
 
-#include <mines_const>
-
 //=====================================
 //  Resource Setting AREA
 //=====================================
@@ -460,35 +458,6 @@ stock mines_hide_progress(id, msg)
 		write_short(0);
 		message_end();
 	}
-}
-
-//====================================================
-// Gets offset data
-//====================================================
-stock get_offset_value(id, type)
-{
-#if defined UL_MONEY_SUPPORT
-	if (type == OFFSET_MONEY)
-	{
-			return cs_get_user_money_ul(id);
-	}
-#endif
-	return get_pdata_int(id, type);	
-}
-
-//====================================================
-// Sets offset data
-//====================================================
-stock set_offset_value(id, type, value)
-{
-#if defined UL_MONEY_SUPPORT
-	if (type == OFFSET_MONEY)
-	{
-		return cs_set_user_money_ul(id, value);
-	}
-#endif
-	set_pdata_int(id, type, value);	
-	return;
 }
 
 //====================================================

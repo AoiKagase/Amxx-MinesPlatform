@@ -17,7 +17,9 @@
 #include <fakemeta>
 #include <hamsandwich>
 #include <xs>
+#include <mines_common>
 #include <mines_util>
+
 #if defined BIOHAZARD_SUPPORT
 	#include <biohazard>
 #endif
@@ -811,7 +813,7 @@ public RemoveMine(params[], id)
 		case ALLOW_FRIENDLY:
 		{
 			// Check. is friendly team?
-			if(CsTeams:pev(target, MINES_TEAM) != cs_get_user_team(uID))
+			if(mines_get_owner_team(target) != cs_get_user_team(uID))
 				return;
 		}		
 	}
@@ -890,7 +892,7 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 		case 1:
 		{
 			// If the team of the one who put the mine and the one who attacked match.
-			if(CsTeams:pev(victim, MINES_TEAM) != cs_get_user_team(attacker))
+			if(mines_get_owner_team(victim) != cs_get_user_team(attacker))
 				return HAM_SUPERCEDE;
 		}
 		// 2 = Enemy.
@@ -901,7 +903,7 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 		// 3 = Enemy Only.
 		case 3:
 		{
-			if(iOwner == attacker || CsTeams:pev(victim, MINES_TEAM) == cs_get_user_team(attacker))
+			if(iOwner == attacker || mines_get_owner_team(victim) == cs_get_user_team(attacker))
 				return HAM_SUPERCEDE;
 		}
 		default:
@@ -1339,7 +1341,7 @@ public bool:CheckPickup(id, iMinesId)
 		case ALLOW_FRIENDLY:
 		{
 			// is team friendly?
-			if(CsTeams:pev(target, MINES_TEAM) != cs_get_user_team(id))
+			if(mines_get_owner_team(target) != cs_get_user_team(id))
 			{
 				cp_cant_pickup(id);
 				return false;
