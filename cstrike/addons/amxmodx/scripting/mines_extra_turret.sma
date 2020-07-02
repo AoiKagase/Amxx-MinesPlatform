@@ -28,8 +28,8 @@
 //  Resource Setting AREA
 //=====================================
 #define ENT_MODELS					"models/mines/sentry.mdl"
-// #define ENT_SOUND1					"mines/TURRET_deploy.wav"
-// #define ENT_SOUND2					"mines/TURRET_wallhit.wav"
+// #define ENT_SOUND1				"mines/TURRET_deploy.wav"
+// #define ENT_SOUND2				"mines/TURRET_wallhit.wav"
 // #define ENT_SPRITE1 				"sprites/mines/TURRET_wire.spr"
 
 //=====================================
@@ -51,10 +51,10 @@
 #define ADMIN_ACCESSLEVEL			ADMIN_LEVEL_H
 
 #define MAX_TURRET				40
-#define ENT_CLASS_TURRET			"TURRET"
-#define TURRET_WIRE_STARTPOINT	pev_vuser4
+#define ENT_CLASS_TURRET			"sentry_turret"
+#define TURRET_WIRE_STARTPOINT		pev_vuser4
 
-#define TURRET_POWERUP			pev_fuser2
+#define TURRET_POWERUP				pev_fuser2
 #define TURRET_WIREENDPOINT1		pev_vuser1
 #define TURRET_WIREENDPOINT2		pev_vuser2
 #define TURRET_WIREENDPOINT3		pev_vuser3
@@ -485,7 +485,7 @@ set_mine_position(uID, iEnt)
 	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
 
 	// set size.
-	engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
+	engfunc(EngFunc_SetSize, iEnt, Float:{ -8.0, -32.0, -8.0 }, Float:{ 8.0, 0.0, 8.0 } );
 	// set entity position.
 	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
 	// TURRET user Angles.
@@ -501,122 +501,6 @@ set_mine_position(uID, iEnt)
 	// set angle.
 	set_pev(iEnt, pev_angles, vEntAngles);
 	xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
-	set_pev(iEnt, TURRET_WIRE_STARTPOINT, vNewOrigin);
-
-	// set laserbeam end point position.
-	set_TURRET_endpoint(iEnt, vNewOrigin);
-}
-
-Float:get_TURRET_wire_endpoint(cvar)
-{
-	new i = 0, n = 0, iPos = 0;
-	new Float:values[2];
-	new sCvarValue	[20];
-	new sSplit		[20];
-	new sSplitLen		= charsmax(sSplit);
-
-
-	formatex(sCvarValue, charsmax(sCvarValue), "%s%s", gCvarValue[cvar], ",");
-	while((i = split_string(sCvarValue[iPos += i], ",", sSplit, sSplitLen)) != -1 && n < sizeof(values))
-	{
-		values[n++] = str_to_float(sSplit);
-	}
-	return random_float(values[0], values[1]);
-}
-
-//====================================================
-// TURRET Wire Endpoint
-//====================================================
-stock set_TURRET_endpoint(iEnt, Float:vOrigin[3])
-{
-	static Float:vAngles	[3];
-	static Float:vForward	[3];
-	static Float:vResult	[3][3];
-	static Float:pAngles	[3];
-	static Float:vFwd		[3];
-	static Float:vRight		[3];
-	static Float:vUp		[3];
-	static Float:hitPoint	[3];
-	static Float:vTmp		[3];
-	static Float:distance;
-	static Float:fraction;
-	static Float:pitch;
-	static Float:yaw;
-	static n = 0;
-	static trace;
-	pev(iEnt, pev_angles, vAngles);
-	vAngles[2] = 0.0;
-	for (new i = 0; i < 3; i++)
-	{
-		hitPoint	= vOrigin;
-		vTmp		= vOrigin;
-		n = 0;
-
-		while(n < gCvarValue[VALUE_CM_TRIAL_FREQ])
-		{
-			switch(i)
-			{
-				// pitch:down 0, back 90, up 180, forward 270(-90)
-				// yaw  :left 90, right -90 
-				case 0: // center
-				{
-					pitch 	= get_TURRET_wire_endpoint(VALUE_CM_CENTER_PITCH);
-					yaw		= get_TURRET_wire_endpoint(VALUE_CM_CENTER_YAW);
-				}
-				case 1: // right
-				{
-					pitch 	= get_TURRET_wire_endpoint(VALUE_CM_RIGHT_PITCH);
-					yaw		= get_TURRET_wire_endpoint(VALUE_CM_RIGHT_YAW);
-				}
-				case 2: // left
-				{
-					pitch 	= get_TURRET_wire_endpoint(VALUE_CM_LEFT_PITCH);
-					yaw		= get_TURRET_wire_endpoint(VALUE_CM_LEFT_YAW);
-				}
-			}		
-
-			pAngles[0] = pitch;
-			pAngles[1] = -90 + yaw; 
-			pAngles[2] = 0.0;
-
-			xs_vec_add(pAngles, vAngles, pAngles);
-			xs_anglevectors(pAngles, vFwd, vRight, vUp);
-				
-			xs_vec_mul_scalar(vFwd, gCvarValue[VALUE_CM_WIRE_RANGE], vFwd);
-			xs_vec_add(vOrigin, vFwd, vForward);
-			// xs_vec_add(vFwd, vNormal, vForward);
-			// xs_vec_add(vOrigin, vForward, vForward);
-			trace = create_tr2();
-			// Trace line
-			engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
-			{
-				get_tr2(trace, TR_vecEndPos, vTmp);
-				get_tr2(trace, TR_flFraction, fraction);
-
-				distance = xs_vec_distance(vOrigin, vTmp);
-				if (distance > gCvarValue[VALUE_CM_WIRE_RANGE]) 
-					continue;
-
-				if (fraction < 1.0)
-				{
-					new block = engfunc(EngFunc_PointContents, vTmp);
-					if (block != CONTENTS_SKY || block == CONTENTS_SOLID) 
-					{
-						if (distance > xs_vec_distance(vOrigin, hitPoint))
-							hitPoint = vTmp;
-						n++;
-					}
-				}
-			}
-			// free the trace handle.
-			free_tr2(trace);
-		}
-		vResult[i] = hitPoint;
-	}
-
-	set_pev(iEnt, TURRET_WIREENDPOINT1, vResult[0]);
-	set_pev(iEnt, TURRET_WIREENDPOINT2, vResult[1]);
-	set_pev(iEnt, TURRET_WIREENDPOINT3, vResult[2]);
 }
 
 //====================================================
@@ -632,15 +516,10 @@ public MinesThink(iEnt, iMinesId)
 		return;
 
 	static Float:fCurrTime;
-	static Float:vEnd[3][3];
 	static step;
 
 	fCurrTime = get_gametime();
 	step = pev(iEnt, MINES_STEP);
-	// Get Laser line end potision.
-	pev(iEnt, TURRET_WIREENDPOINT1, vEnd[0]);
-	pev(iEnt, TURRET_WIREENDPOINT2, vEnd[1]);
-	pev(iEnt, TURRET_WIREENDPOINT3, vEnd[2]);
 
 	// TURRET state.
 	// Power up.
@@ -786,58 +665,6 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 }
 
 //====================================================
-// Drawing Laser line.
-//====================================================
-draw_laserline(iEnt, const Float:vEndOrigin[3])
-{
-	new Float:tcolor[3];
-	new CsTeams:teamid = mines_get_owner_team(iEnt);
-
-	// Color mode. 0 = team color.
-	if(gCvarValue[VALUE_CM_WIRE_COLOR] == 0)
-	{
-		switch(teamid)
-		{
-			case CS_TEAM_T:
-				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvarValue[VALUE_CM_WIRE_COLOR_T]), i));
-			case CS_TEAM_CT:
-				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvarValue[VALUE_CM_WIRE_COLOR_CT]), i));
-			default:
-				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color("20,20,20"), i));
-		}
-
-	}
-
-	static Float:vStartOrigin[3];
-	pev(iEnt, TURRET_WIRE_STARTPOINT, vStartOrigin);
-	// lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 0, width, 0, tcolor, bind_pcvar_num(gCvar[CVAR_CM_WIRE_BRIGHT]), 0);
-	// return cm_draw_wire(vStartOrigin, vEndOrigin, 0.0, gCvarValue[VALUE_CM_WIRE_WIDTH], 0, tcolor, gCvarValue[VALUE_CM_WIRE_BRIGHT], 0.0);
-}
-
-// stock cm_draw_wire(
-// 		const Float:vStartOrigin[3],
-// 		const Float:vEndOrigin[3], 
-// 		const Float:framestart	= 0.0, 
-// 		const Float:width		= 1.0, 
-// 		const wave				= 0, 
-// 		const Float:tcolor[3],
-// 		const Float:bright		= 255.0,
-// 		const Float:speed		= 255.0
-// 	)
-// {
-// 	new beams = Beam_Create(gEntSprite, width);
-// 	Beam_PointsInit(beams, vStartOrigin, vEndOrigin);
-// 	Beam_SetFlags(beams, BEAM_FSOLID);
-// 	Beam_SetFrame(beams, framestart);
-// 	Beam_SetNoise(beams, wave);
-// 	Beam_SetColor(beams, tcolor);
-// 	Beam_SetBrightness(beams, bright);
-// 	Beam_SetScrollRate(beams, speed);
-// 	set_pev(beams, pev_renderamt, 255.0);
-// 	return beams;
-// }
-
-//====================================================
 // Check: On the wall.
 //====================================================
 public CheckForDeploy(id, iMinesId)
@@ -882,7 +709,7 @@ public MinesBreaked(iMinesId, iEnt, iAttacker)
 	if (iMinesId != gMinesId) return HAM_IGNORED;
 #if defined ZP_SUPPORT
 	zp_ammopacks_set(iAttacker, zp_ammopacks_get(iAttacker) + gCvarValue[VALUE_FRAG_MONEY]);
-	zp_colored_print(0, "^4%n ^1earned^4 %i points ^1for destorying a TURRET !", iAttacker, addpoint);
+	zp_colored_print(0, "^4%n ^1earned^4 %i points ^1for destorying a turret !", iAttacker, addpoint);
 #endif
     return HAM_IGNORED;
 }
