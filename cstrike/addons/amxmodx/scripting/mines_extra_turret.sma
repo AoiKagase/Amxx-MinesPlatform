@@ -50,14 +50,47 @@
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL			ADMIN_LEVEL_H
 
-#define MAX_TURRET				40
+#define MAX_TURRET					40
 #define ENT_CLASS_TURRET			"sentry_turret"
-#define TURRET_WIRE_STARTPOINT		pev_vuser4
 
-#define TURRET_POWERUP				pev_fuser2
-#define TURRET_WIREENDPOINT1		pev_vuser1
-#define TURRET_WIREENDPOINT2		pev_vuser2
-#define TURRET_WIREENDPOINT3		pev_vuser3
+#define TURRET_MAXWAIT				15
+#define TURRET_TURNRATE				30	//angles per 0.1 second
+#define TURRET_MAXWAIT				15	// seconds turret will stay active w/o a target
+#define TURRET_MAXSPIN				5	// seconds turret barrel will spin w/o a target
+#define TURRET_MACHINE_VOLUME		0.5
+
+#define TURRET_PEV_POWERUP			pev_fuser2
+#define TURRET_PEV_CURRENT_ANGLES	pev_vuser1
+#define TURRET_PEV_GOAL_ANGLES		pev_vuser2
+#define TURRET_PEV_HACKED_GUNPOS	pev_vuser3
+#define TURRET_PEV_TURN_RATES		pev_fuser1
+#define TURRET_PEV_ORIENTATION		pev_iuser2	// 
+
+enum _:TURRET_ANIM
+{
+	TURRET_ANIM_NONE = 0,
+	TURRET_ANIM_FIRE,
+	TURRET_ANIM_SPIN,
+	TURRET_ANIM_DEPLOY,
+	TURRET_ANIM_RETIRE,
+	TURRET_ANIM_DIE
+};
+
+enum _:TURRET_THINK
+{
+	DEPLOY			= 0,
+	SEARCH			,
+	DETECTED		,
+	LOST			,
+	EXPLODE			,
+};
+
+enum _:TURRET_ORIENTATION
+{
+	FLOOR_MOUNT,
+	CEILING_MOUNT,
+};
+
 //
 // CVAR SETTINGS
 //
@@ -82,22 +115,8 @@ enum _:CVAR_SETTING
 	CVAR_MINE_GLOW_TR    	,   	// Glowing color for T.
 	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
 	CVAR_DEATH_REMOVE		,		// Dead Player Remove TURRET.
-	CVAR_CM_ACTIVATE		,		// Waiting for put TURRET. (0 = no progress bar.)
+	CVAR_ST_ACTIVATE		,		// Waiting for put TURRET. (0 = no progress bar.)
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
-	CVAR_CM_WIRE_RANGE		,		// TURRET Wire Range.
-	CVAR_CM_WIRE_WIDTH		,		// TURRET Wire Width.
-	CVAR_CM_CENTER_PITCH	,		// TURRET Wire Area Center Pitch.
-	CVAR_CM_CENTER_YAW		,		// TURRET Wire Area Center Yaw.
-	CVAR_CM_LEFT_PITCH		,		// TURRET Wire Area Left Pitch.
-	CVAR_CM_LEFT_YAW		,		// TURRET Wire Area Left Yaw.
-	CVAR_CM_RIGHT_PITCH		,		// TURRET Wire Area Right Pitch.
-	CVAR_CM_RIGHT_YAW		,		// TURRET Wire Area Right Yaw.
-	CVAR_CM_TRIAL_FREQ		,		// TURRET Wire trial frequency.
-	CVAR_CM_WIRE_VISIBLE    ,   	// Wire Visiblity. 0 = off, 1 = on.
-	CVAR_CM_WIRE_BRIGHT     ,   	// Wire brightness.
-	CVAR_CM_WIRE_COLOR		,
-	CVAR_CM_WIRE_COLOR_T	,
-	CVAR_CM_WIRE_COLOR_CT	,
 	CVAR_MAX_COUNT			,
 };
 
@@ -117,27 +136,13 @@ enum _:CVAR_VALUE
 	VALUE_MINE_BROKEN			,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
 	VALUE_DEATH_REMOVE			,		// Dead Player Remove TURRET.
 	VALUE_ALLOW_PICKUP			,		// allow pickup.
-	VALUE_CM_TRIAL_FREQ			,		// TURRET Wire trial frequency.
-	VALUE_CM_WIRE_VISIBLE	    ,   	// Wire Visiblity. 0 = off, 1 = on.
-	VALUE_CM_WIRE_COLOR			,
 	Float:VALUE_EXPLODE_RADIUS  ,   	// Explosion Radius.
 	Float:VALUE_EXPLODE_DMG     ,   	// Explosion Damage.
 	Float:VALUE_MINE_HEALTH    	,   	// TURRET health. (Can break.)
-	Float:VALUE_CM_ACTIVATE		,		// Waiting for put TURRET. (0 = no progress bar.)
-	Float:VALUE_CM_WIRE_RANGE	,		// TURRET Wire Range.
-	Float:VALUE_CM_WIRE_BRIGHT	,   	// Wire brightness.
-	Float:VALUE_CM_WIRE_WIDTH	,		// TURRET Wire Width.
+	Float:VALUE_ST_ACTIVATE		,		// Waiting for put TURRET. (0 = no progress bar.)
 	VALUE_CBT               [4]	,   	// Can buy team. TR/CT/ALL
 	VALUE_MINE_GLOW_CT     	[13],   	// Glowing color for CT.
 	VALUE_MINE_GLOW_TR    	[13],   	// Glowing color for T.
-	VALUE_CM_CENTER_PITCH	[20],		// TURRET Wire Area Center Pitch.
-	VALUE_CM_CENTER_YAW		[20],		// TURRET Wire Area Center Yaw.
-	VALUE_CM_LEFT_PITCH		[20],		// TURRET Wire Area Left Pitch.
-	VALUE_CM_LEFT_YAW		[20],		// TURRET Wire Area Left Yaw.
-	VALUE_CM_RIGHT_PITCH	[20],		// TURRET Wire Area Right Pitch.
-	VALUE_CM_RIGHT_YAW		[20],		// TURRET Wire Area Right Yaw.
-	VALUE_CM_WIRE_COLOR_T	[13],
-	VALUE_CM_WIRE_COLOR_CT	[13],
 };
 
 //====================================================
@@ -147,21 +152,13 @@ new gCvar		[CVAR_SETTING];
 new gCvarValue	[CVAR_VALUE];
 
 new gMinesId;
-
 new gMinesData[COMMON_MINES_DATA];
-new TURRET_WIRE[]	= {
-	pev_euser1,
-	pev_euser2,
-	pev_euser3,
-};
+
 
 new const gEntName	[]	= ENT_CLASS_TURRET;
 new const gEntModel	[]	= ENT_MODELS;
 // new const gEntSprite[]	= ENT_SPRITE1;
 // new const gEntSound	[][]={ENT_SOUND1, ENT_SOUND2};
-
-new Float:gModelMargin[] = {0.0, -0.0, 4.0};
-new const gWireLoop = 3;
 
 //====================================================
 //  PLUGIN INITIALIZE
@@ -196,35 +193,19 @@ public plugin_init()
 
 	// Misc Settings.
 	gCvar[CVAR_DEATH_REMOVE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"				);	// Dead Player remove TURRET. 0 = off, 1 = on.
-	gCvar[CVAR_CM_ACTIVATE]		= create_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),			"1.0"			);	// Waiting for put TURRET. (int:seconds. 0 = no progress bar.)
+	gCvar[CVAR_ST_ACTIVATE]		= create_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),			"1.0"			);	// Waiting for put TURRET. (int:seconds. 0 = no progress bar.)
 	gCvar[CVAR_ALLOW_PICKUP]	= create_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"				);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 
-	// TURRET Settings. (Color is Laser color)
-	gCvar[CVAR_CM_WIRE_VISIBLE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_visible"),			"1"				);	// wire visibility.
-	gCvar[CVAR_CM_WIRE_RANGE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_range"),				"300"			);	// wire range.
-	gCvar[CVAR_CM_WIRE_BRIGHT]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_brightness"),		"255"			);	// wire brightness.
-	gCvar[CVAR_CM_WIRE_WIDTH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_width"),				"2"				);	// wire width.
-	gCvar[CVAR_CM_CENTER_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_pitch"),		"10,-65"		);	// wire area center pitch.
-	gCvar[CVAR_CM_CENTER_YAW]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_yaw"),		"45,135"		);	// wire area center yaw.
-	gCvar[CVAR_CM_LEFT_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_pitch"),		"10,-45"		);	// wire area left pitch.
-	gCvar[CVAR_CM_LEFT_YAW]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_yaw"),			"100,165"		);	// wire area left yaw.
-	gCvar[CVAR_CM_RIGHT_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_pitch"),		"10,-45"		);	// wire area right pitch.
-	gCvar[CVAR_CM_RIGHT_YAW]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_yaw"),			"15,80"			);	// wire area right yaw.
-	gCvar[CVAR_CM_TRIAL_FREQ]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_trial_freq"),		"3"				);	// wire trial frequency.
-	gCvar[CVAR_CM_WIRE_COLOR]  	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_mode"),		"0"				);	// Mine glow coloer 0 = team color, 1 = green.
-	gCvar[CVAR_CM_WIRE_COLOR_T] = create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),			"255,255,255"	);	// Team-Color for Terrorist. default:red (R,G,B)
-	gCvar[CVAR_CM_WIRE_COLOR_CT]= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),			"255,255,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
-
-	create_cvar("mines_TURRET", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
+	create_cvar("mines_extra_turret", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
 	gMinesId 					= register_mines(ENT_CLASS_TURRET, LANG_KEY_LONGNAME);
 
 	// Multi Language Dictionary.
-	mines_register_dictionary("mines/mines_cm.txt");
+	mines_register_dictionary("mines/mines_extra_turret.txt");
 
 #if AMXX_VERSION_NUM > 182
 	bind_cvars();
-	AutoExecConfig(true, "mines_cvars_cm", "mines");
+	AutoExecConfig(true, "mines_cvars_extra_turret", "mines");
 
 	for (new i = 0; i < CVAR_MAX_COUNT; i++)
 		if(gCvar[i])
@@ -242,7 +223,7 @@ public plugin_cfg()
 	new file[128];
 	new len = charsmax(file);
 	get_localinfo("amxx_configsdir", file, len);
-	formatex(file, len, "%s/plugins/mines/mines_cvars_cm.cfg", file);
+	formatex(file, len, "%s/plugins/mines/mines_cvars_extra_turret.cfg", file);
 
 	if(file_exists(file)) 
 	{
@@ -276,28 +257,14 @@ public hook_cvars(pcvar, const old_value[], const new_value[])
 				case CVAR_DEATH_REMOVE		: gCvarValue[VALUE_DEATH_REMOVE]	= str_to_num(new_value);
 				case CVAR_MINE_GLOW			: gCvarValue[VALUE_MINE_GLOW]		= str_to_num(new_value);
 				case CVAR_MINE_GLOW_MODE	: gCvarValue[VALUE_MINE_GLOW_MODE]	= str_to_num(new_value);
-				case CVAR_CM_WIRE_VISIBLE	: gCvarValue[VALUE_CM_WIRE_VISIBLE]	= str_to_num(new_value);
-				case CVAR_CM_WIRE_COLOR		: gCvarValue[VALUE_CM_WIRE_COLOR]	= str_to_num(new_value);
-				case CVAR_CM_TRIAL_FREQ		: gCvarValue[VALUE_CM_TRIAL_FREQ]	= str_to_num(new_value);
-				case CVAR_CM_WIRE_WIDTH		: gCvarValue[VALUE_CM_WIRE_WIDTH]	= str_to_float(new_value);
-				case CVAR_CM_WIRE_BRIGHT	: gCvarValue[VALUE_CM_WIRE_BRIGHT]	= str_to_float(new_value);
 				case CVAR_MINE_HEALTH		: gCvarValue[VALUE_MINE_HEALTH]		= str_to_float(new_value);
-				case CVAR_CM_ACTIVATE		: gCvarValue[VALUE_CM_ACTIVATE]		= str_to_float(new_value);
+				case CVAR_ST_ACTIVATE		: gCvarValue[VALUE_ST_ACTIVATE]		= str_to_float(new_value);
 				case CVAR_EXPLODE_RADIUS	: gCvarValue[VALUE_EXPLODE_RADIUS]	= str_to_float(new_value);
 				case CVAR_EXPLODE_DMG		: gCvarValue[VALUE_EXPLODE_DMG]		= str_to_float(new_value);
-				case CVAR_CM_WIRE_RANGE		: gCvarValue[VALUE_CM_WIRE_RANGE]	= str_to_float(new_value);
 
 				case CVAR_CBT				: copy(gCvarValue[VALUE_CBT], 				charsmax(gCvarValue[VALUE_CBT])				   , new_value);
 				case CVAR_MINE_GLOW_TR		: copy(gCvarValue[VALUE_MINE_GLOW_TR],		charsmax(gCvarValue[VALUE_MINE_GLOW_TR]) 	- 1, new_value);// last comma - 1
 				case CVAR_MINE_GLOW_CT		: copy(gCvarValue[VALUE_MINE_GLOW_CT],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1, new_value);// last comma - 1
-				case CVAR_CM_CENTER_PITCH	: copy(gCvarValue[VALUE_CM_CENTER_PITCH],	charsmax(gCvarValue[VALUE_CM_CENTER_PITCH]) - 1, new_value);// last comma - 1
-				case CVAR_CM_CENTER_YAW		: copy(gCvarValue[VALUE_CM_CENTER_YAW],		charsmax(gCvarValue[VALUE_CM_CENTER_YAW]) 	- 1, new_value);// last comma - 1
-				case CVAR_CM_LEFT_PITCH		: copy(gCvarValue[VALUE_CM_LEFT_PITCH],		charsmax(gCvarValue[VALUE_CM_LEFT_PITCH]) 	- 1, new_value);// last comma - 1
-				case CVAR_CM_LEFT_YAW		: copy(gCvarValue[VALUE_CM_LEFT_YAW],		charsmax(gCvarValue[VALUE_CM_LEFT_YAW]) 	- 1, new_value);// last comma - 1
-				case CVAR_CM_RIGHT_PITCH	: copy(gCvarValue[VALUE_CM_RIGHT_PITCH],	charsmax(gCvarValue[VALUE_CM_RIGHT_PITCH]) 	- 1, new_value);// last comma - 1
-				case CVAR_CM_RIGHT_YAW		: copy(gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_CM_RIGHT_YAW]) 	- 1, new_value);// last comma - 1
-				case CVAR_CM_WIRE_COLOR_T	: copy(gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T]) - 1, new_value);// last comma - 1
-				case CVAR_CM_WIRE_COLOR_CT	: copy(gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1, new_value);// last comma - 1
 			}
 			break;
 		}
@@ -324,29 +291,14 @@ bind_cvars()
 	bind_pcvar_num		(gCvar[CVAR_DEATH_REMOVE],		gCvarValue[VALUE_DEATH_REMOVE]);
 	bind_pcvar_num		(gCvar[CVAR_MINE_GLOW],			gCvarValue[VALUE_MINE_GLOW]);
 	bind_pcvar_num		(gCvar[CVAR_MINE_GLOW_MODE],	gCvarValue[VALUE_MINE_GLOW_MODE]);
-	bind_pcvar_num		(gCvar[CVAR_CM_WIRE_VISIBLE],	gCvarValue[VALUE_CM_WIRE_VISIBLE]);
-	bind_pcvar_num		(gCvar[CVAR_CM_WIRE_COLOR],		gCvarValue[VALUE_CM_WIRE_COLOR]);
-	bind_pcvar_num		(gCvar[CVAR_CM_TRIAL_FREQ], 	gCvarValue[VALUE_CM_TRIAL_FREQ]);
-	bind_pcvar_float	(gCvar[CVAR_CM_WIRE_WIDTH],		gCvarValue[VALUE_CM_WIRE_WIDTH]);
-	bind_pcvar_float	(gCvar[CVAR_CM_WIRE_BRIGHT],	gCvarValue[VALUE_CM_WIRE_BRIGHT]);
 	bind_pcvar_float	(gCvar[CVAR_MINE_HEALTH],		gCvarValue[VALUE_MINE_HEALTH]);
-	bind_pcvar_float	(gCvar[CVAR_CM_ACTIVATE],		gCvarValue[VALUE_CM_ACTIVATE]);
+	bind_pcvar_float	(gCvar[CVAR_ST_ACTIVATE],		gCvarValue[VALUE_ST_ACTIVATE]);
 	bind_pcvar_float	(gCvar[CVAR_EXPLODE_RADIUS],	gCvarValue[VALUE_EXPLODE_RADIUS]);
 	bind_pcvar_float	(gCvar[CVAR_EXPLODE_DMG],		gCvarValue[VALUE_EXPLODE_DMG]);
-	bind_pcvar_float	(gCvar[CVAR_CM_WIRE_RANGE],		gCvarValue[VALUE_CM_WIRE_RANGE]);
 
 	bind_pcvar_string	(gCvar[CVAR_CBT], 				gCvarValue[VALUE_CBT], 				charsmax(gCvarValue[VALUE_CBT]));
 	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_TR],		gCvarValue[VALUE_MINE_GLOW_TR],		charsmax(gCvarValue[VALUE_MINE_GLOW_TR]) 	- 1);// last comma - 1
 	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_CT],		gCvarValue[VALUE_MINE_GLOW_CT],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_PITCH],	gCvarValue[VALUE_CM_CENTER_PITCH],	charsmax(gCvarValue[VALUE_CM_CENTER_PITCH]) - 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_YAW],		gCvarValue[VALUE_CM_CENTER_YAW],	charsmax(gCvarValue[VALUE_CM_CENTER_YAW]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_PITCH],		gCvarValue[VALUE_CM_LEFT_PITCH],	charsmax(gCvarValue[VALUE_CM_LEFT_PITCH]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_YAW],		gCvarValue[VALUE_CM_LEFT_YAW],		charsmax(gCvarValue[VALUE_CM_LEFT_YAW]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_PITCH],	gCvarValue[VALUE_CM_RIGHT_PITCH],	charsmax(gCvarValue[VALUE_CM_RIGHT_PITCH]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_YAW],		gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_CM_RIGHT_YAW]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_T],	gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T]) - 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_CT],	gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1);// last comma - 1
-
 
 	update_mines_parameter();
 }
@@ -370,7 +322,7 @@ update_mines_parameter()
 	gMinesData[GLOW_ENABLE]		=	gCvarValue[VALUE_MINE_GLOW];
 	gMinesData[GLOW_MODE]		=	gCvarValue[VALUE_MINE_GLOW_MODE];
 	gMinesData[MINE_HEALTH]		=	_:gCvarValue[VALUE_MINE_HEALTH];
-	gMinesData[ACTIVATE_TIME]	=	_:gCvarValue[VALUE_CM_ACTIVATE];
+	gMinesData[ACTIVATE_TIME]	=	_:gCvarValue[VALUE_ST_ACTIVATE];
 	gMinesData[EXPLODE_RADIUS]	=	_:gCvarValue[VALUE_EXPLODE_RADIUS];
 	gMinesData[EXPLODE_DAMAGE]	=	_:gCvarValue[VALUE_EXPLODE_DMG];
 	gMinesData[BUY_TEAM] 		=	_:get_team_code(gCvarValue[VALUE_CBT]);
@@ -387,7 +339,7 @@ public plugin_precache()
 {
 	// for (new i = 0; i < sizeof(gEntSound); i++)
 	// 	precache_sound(gEntSound[i]);
-
+	precache_sound("turret/tu_deploy.wav");
 	precache_model(gEntModel);
 	// precache_model(gEntSprite);
 
@@ -414,10 +366,11 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
 
 	// set model animation.
-	set_pev(iEnt, pev_frame,		0);
-	set_pev(iEnt, pev_body, 		3);
-	set_pev(iEnt, pev_sequence, 	TRIPMINE_WORLD);
-	set_pev(iEnt, pev_framerate,	0);
+	set_pev(iEnt, pev_body, 		0);
+	UTIL_PlayAnim(iEnt, TURRET_ANIM_NONE, 120.0, 0.1, 0.1);
+
+	set_pev(iEnt, TURRET_PEV_ORIENTATION, FLOOR_MOUNT);
+
 	set_pev(iEnt, pev_rendermode,	kRenderNormal);
 	set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
 
@@ -436,8 +389,8 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
-	set_pev(iEnt, TURRET_POWERUP, fCurrTime + 2.5 );
-	set_pev(iEnt, MINES_STEP, POWERUP_THINK);
+	set_pev(iEnt, TURRET_PEV_POWERUP, fCurrTime + 2.5 );
+	set_pev(iEnt, MINES_STEP, DEPLOY);
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
@@ -481,26 +434,38 @@ set_mine_position(uID, iEnt)
     // free the trace handle.
 	free_tr2(trace);
 
-	xs_vec_mul_scalar( vNormal, 8.0, vNormal );
+	// xs_vec_mul_scalar( vNormal, 1.0, vNormal );
 	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
 
+	set_pev(iEnt, pev_sequence, 0);
+
 	// set size.
-	engfunc(EngFunc_SetSize, iEnt, Float:{ -8.0, -32.0, -8.0 }, Float:{ 8.0, 0.0, 8.0 } );
+	new Float:mins[3], Float:maxs[3];
+	if (GetModelBoundingBox(iEnt, mins, maxs, Model_CurrentSequence))
+	{
+		engfunc(EngFunc_SetSize, iEnt, mins, maxs);
+		client_print_color(0, print_chat, "%.2f, %.2f, %.2f %.2f, %.2f, %.2f", mins[0], mins[1], mins[2], maxs[0], maxs[1], maxs[2]);
+	}
+	else
+		// -16.91, -13.28, -0.01 13.30, 13.29, 57.02
+		engfunc(EngFunc_SetSize, iEnt, Float:{ -7.8, -26.0, -8.44 }, Float:{ 7.8, 4.8, 7.8 } );
 	// set entity position.
 	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
+
 	// TURRET user Angles.
 	new Float:pAngles[3];
 	pev(uID, pev_angles, pAngles);
 	pAngles[0]   = -90.0;
-	//pAngles[1]  += -90.0;
+	pAngles[1]  += 90.0;
 
 	// Rotate tripmine.
 	vector_to_angle(vNormal, vEntAngles);
 	xs_vec_add(vEntAngles, pAngles, vEntAngles); 
 
 	// set angle.
-	set_pev(iEnt, pev_angles, vEntAngles);
-	xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
+	// set_pev(iEnt, pev_angles, vEntAngles);
+	Turret_Initialize(iEnt);
+	Turret_Deploy(iEnt);
 }
 
 //====================================================
@@ -525,21 +490,25 @@ public MinesThink(iEnt, iMinesId)
 	// Power up.
 	switch(step)
 	{
-		case POWERUP_THINK:
+		case DEPLOY:
 		{
-			mines_step_powerup(iEnt, fCurrTime);
+			Turret_Initialize(iEnt);
+			Turret_Deploy(iEnt);
+			mines_glow(iEnt, gMinesData);
+			// solid complete.
+			set_pev(iEnt, pev_solid, SOLID_BBOX);
+			set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
+			// next state.
+			set_pev(iEnt, MINES_STEP, SEARCH);
 		}
-		case BEAMUP_THINK:
-		{
-			mines_step_beamup(iEnt, vEnd, fCurrTime);
-		}
-		// Laser line activated.
-		case BEAMBREAK_THINK:
-		{
-			mines_step_beambreak(iEnt, vEnd, fCurrTime);
-		}
+		case SEARCH:
+		{return;}
+		case DETECTED:
+		{return;}
+		case LOST:
+		{return;}
 		// EXPLODE
-		case EXPLOSE_THINK:
+		case EXPLODE:
 		{
 			// Stopping sound.
 			// cm_play_sound(iEnt, SOUND_STOP);
@@ -550,118 +519,6 @@ public MinesThink(iEnt, iMinesId)
 	}
 
 	return;
-}
-
-mines_step_powerup(iEnt, Float:fCurrTime)
-{
-	static Float:fPowerupTime;
-	pev(iEnt, TURRET_POWERUP, fPowerupTime);
-	// over power up time.
-		
-	if (fCurrTime > fPowerupTime)
-	{
-		// next state.
-		set_pev(iEnt, MINES_STEP, BEAMUP_THINK);
-		// activate sound.
-		// cm_play_sound(iEnt, SOUND_ACTIVATE);
-
-	}
-	mines_glow(iEnt, gMinesData);
-	// Think time.
-	set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
-}
-
-mines_step_beamup(iEnt, Float:vEnd[3][3], Float:fCurrTime)
-{
-	static wire;
-	for (new i = 0; i < gWireLoop; i++)
-	{
-		wire = draw_laserline(iEnt, vEnd[i]);
-		set_pev(iEnt, TURRET_WIRE[i], wire);
-		mines_spark_wall(vEnd[i]);
-	}
-	// solid complete.
-	set_pev(iEnt, pev_solid, SOLID_BBOX);
-	// next state.
-	set_pev(iEnt, MINES_STEP, BEAMBREAK_THINK);
-	// Think time.
-	set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
-}
-
-mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
-{
-	static iTarget;
-	static trace;
-	static Float:fFraction;
-	static Float:vOrigin[3];
-	static Float:hitPoint[3];
-
-	// Get owner id.
-	new iOwner = pev(iEnt, MINES_OWNER);
-	// Get this mine position.
-	pev(iEnt, TURRET_WIRE_STARTPOINT, vOrigin);
-
-	for(new i = 0; i < gWireLoop; i++)
-	{
-		// create the trace handle.
-		trace = create_tr2();
-		// Trace line
-		engfunc(EngFunc_TraceLine, vOrigin, vEnd[i], DONT_IGNORE_MONSTERS, iEnt, trace);
-		{
-			get_tr2(trace, TR_flFraction, fFraction);
-			iTarget		= get_tr2(trace, TR_pHit);
-			get_tr2(trace, TR_vecEndPos, hitPoint);				
-		}
-		// free the trace handle.
-		free_tr2(trace);
-
-		// Something has passed the laser.
-		if (fFraction >= 1.0)
-			continue;
-
-		// is valid hit entity?
-		if (!pev_valid(iTarget))
-			continue;
-
-		// is user?
-		if (!(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER)))
-			continue;
-
-		// is dead?
-		if (!is_user_alive(iTarget))
-			continue;
-
-		// Hit friend and No FF.
-		if (!mines_valid_takedamage(iOwner, iTarget))
-			continue;
-
-		// is godmode?
-		if (get_user_godmode(iTarget))
-			continue;
-
-		// keep target id.
-		set_pev(iEnt, pev_enemy, iTarget);
-
-		// State change. to Explosing step.
-		set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);
-	}
-
-	// Get mine health.
-	static Float:iHealth;
-	pev(iEnt, pev_health, iHealth);
-
-	// break?
-	if (iHealth <= 0 || (pev(iEnt, pev_flags) & FL_KILLME))
-	{
-		// next step explosion.
-		set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);
-		set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
-	}
-				
-	// Think time. random_float = laser line blinking.
-	set_pev(iEnt, pev_nextthink, fCurrTime + random_float(0.01, 0.02));
-
-	return true;
 }
 
 //====================================================
@@ -732,16 +589,6 @@ public MinesBreaked(iMinesId, iEnt, iAttacker)
 // 	}
 // }
 
-public mines_remove_entity(iEnt)
-{
-	new wire;
-	for (new i = 0; i < 3; i++)
-	{
-		wire = pev(iEnt, TURRET_WIRE[i]);
-		engfunc(EngFunc_RemoveEntity, wire);
-	}
-}
-
 public mines_deploy_hologram(id, iEnt, iMinesId)
 {
 	if (iMinesId != gMinesId)
@@ -776,7 +623,7 @@ public mines_deploy_hologram(id, iEnt, iMinesId)
 
 		if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
 		{
-			xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+			// xs_vec_mul_scalar(vNormal, 8.0, vNormal);
 			xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
 			// set entity position.
 			engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
@@ -784,11 +631,14 @@ public mines_deploy_hologram(id, iEnt, iMinesId)
 			new Float:pAngles[3];
 			pev(id, pev_angles, pAngles);
 			pAngles[0]   = -90.0;
+			pAngles[1]  +=  90.0;
+
 			// Rotate tripmine.
 			vector_to_angle(vNormal, vEntAngles);
 			xs_vec_add(vEntAngles, pAngles, vEntAngles); 
 			// set angle.
-			set_pev(iEnt, pev_angles, vEntAngles);
+			// set_pev(iEnt, pev_angles, vEntAngles);
+			Turret_Initialize(iEnt);
 			result = 1;
 		}
 		else
@@ -800,4 +650,489 @@ public mines_deploy_hologram(id, iEnt, iMinesId)
 	free_tr2(trace);
 
 	return result;
+}
+
+stock UTIL_PlayAnim(const id, const sequence, Float:frame=0.0, Float:framerate=1.0, Float:animtime=1.0)
+{
+	set_pev(id, pev_sequence, 		sequence);
+	set_pev(id, pev_gaitsequence, 	sequence);
+	set_pev(id, pev_frame, 			frame);
+	set_pev(id, pev_framerate, 		framerate); 
+	set_pev(id, pev_animtime, 		get_gametime() + animtime); //get_gametime()
+}
+
+stock Float:StudioFrameAdvance(iEnt, Float:flInterval = 0.0, Float:flFrameRate = 0.0, fSequenceLoops = 0)
+{
+	new Float:animtime;
+	pev(iEnt, pev_animtime, animtime);
+	
+	new Float:frame;
+	new Float:framerate;
+	pev(iEnt, pev_frame, frame);
+	pev(iEnt, pev_framerate, framerate);
+
+	if (flInterval == 0.0)
+	{
+		flInterval = get_gametime() - animtime;
+		if(flInterval <= 0.001)
+		{
+			set_pev(iEnt, pev_animtime, get_gametime());
+			return 0.0;
+		}
+	}
+	if (!animtime)
+		flInterval = 0.0;
+
+	frame += flInterval * flFrameRate * framerate;
+	set_pev(iEnt, pev_frame, frame);
+
+	if (frame < 0.0 || frame >= 256.0)
+	{
+		if(fSequenceLoops)
+			frame -= (frame / 256.0) * 256.0;
+		else
+			frame = (frame < 0.0) ? 0.0 : 255.0;
+		// fSequenceFinished = TRUE;	// just in case it wasn't caught in GetEvents
+	}
+	set_pev(iEnt, pev_frame, frame);
+
+	return flInterval;
+}
+
+stock Turret_Initialize(iEnt)
+{
+	// m_iOn = 0;
+	// m_fBeserk = 0;
+	// m_iSpin = 0;
+	new Float:vecOfs[3], Float:vecAngles[3], Float:vecGoalAngles[3];
+	pev(iEnt, pev_angles, vecAngles);
+	pev(iEnt, pev_angles, vecGoalAngles);
+
+	set_controller(iEnt, 0, 0.0);
+	set_controller(iEnt, 1, 0.0);
+
+	if( pev(iEnt, TURRET_PEV_ORIENTATION) == CEILING_MOUNT)
+	{
+		pev(iEnt, pev_view_ofs, vecOfs);
+		vecOfs[2] = -vecOfs[2];
+
+		set_pev(iEnt, pev_idealpitch, 180.0);
+		vecAngles[0] = 180.0;
+		set_pev(iEnt, pev_angles, vecAngles);
+		set_pev(iEnt, pev_view_ofs, vecOfs);
+		set_pev(iEnt, pev_effects, pev(iEnt, pev_effects) | EF_INVLIGHT);
+
+		vecAngles[1] += 180.0;
+		if( vecAngles[1] > 360 )
+			vecAngles[1] -= 360.0;
+		set_pev(iEnt, pev_angles, vecAngles);
+	}
+
+	vecGoalAngles[0] = 0.0;
+	// m_flLastSight = get_gametime() + TURRET_MAXWAIT;
+	set_pev(iEnt, TURRET_PEV_GOAL_ANGLES, vecGoalAngles);
+	set_pev(iEnt, pev_nextthink, get_gametime() + 0.1);
+}
+
+stock Turret_Deploy(iEnt)
+{
+	set_pev(iEnt, pev_nextthink, get_gametime() + 0.1);
+	new sequence = pev(iEnt, pev_sequence);
+	StudioFrameAdvance(iEnt);
+
+	if( sequence != TURRET_ANIM_DEPLOY)
+	{
+		// m_iOn = 1;
+		Turret_SetTurretAnim(iEnt, TURRET_ANIM_DEPLOY);
+		emit_sound(iEnt, CHAN_BODY, "turret/tu_deploy.wav", 0.5, ATTN_NORM, 0, PITCH_NORM);
+		// SUB_UseTargets( this, USE_ON, 0 );
+	}
+
+	// if( true )
+	{
+		new Float:vecCurAngles[3]; 
+		new Float:vecAngles[3];
+		new iOrientation = 0;
+
+		pev(iEnt, TURRET_PEV_CURRENT_ANGLES, vecCurAngles);
+		pev(iEnt, TURRET_PEV_ORIENTATION,	 iOrientation);
+		pev(iEnt, pev_angles, vecAngles);
+		// pev->maxs.z = m_iDeployHeight;
+		// pev->mins.z = -m_iDeployHeight;
+		// UTIL_SetSize( pev, pev->mins, pev->maxs );
+
+		vecCurAngles[0] = 0.0;
+
+		if( iOrientation == 1 )
+			vecCurAngles[1] = UTIL_AngleMod( vecAngles[1] + 180.0 );
+		else
+			vecCurAngles[1] = UTIL_AngleMod( vecAngles[1] );
+
+		Turret_SetTurretAnim(iEnt, TURRET_ANIM_SPIN);
+		set_pev(iEnt, pev_framerate, 0.0);
+		set_pev(iEnt, TURRET_PEV_CURRENT_ANGLES, vecCurAngles);
+		set_pev(iEnt, MINES_STEP, SEARCH);
+	}
+
+	// m_flLastSight = gpGlobals->time + m_flMaxWait;
+}
+
+stock Turret_SetTurretAnim(iEnt, anim)
+{
+	new sequence = pev(iEnt, pev_sequence);
+	if(sequence != anim)
+	{
+		switch(anim)
+		{
+			case TURRET_ANIM_FIRE, TURRET_ANIM_SPIN:
+				if( sequence != TURRET_ANIM_FIRE && sequence != TURRET_ANIM_SPIN )
+					set_pev(iEnt, pev_frame, 0);
+			default:
+				set_pev(iEnt, pev_frame, 0);
+		}
+
+		set_pev(iEnt, pev_sequence, anim);
+		set_pev(iEnt, pev_animtime, get_gametime());
+		set_pev(iEnt, pev_framerate, 1.0);
+
+		switch(anim)
+		{
+			case TURRET_ANIM_RETIRE:
+			{
+				set_pev(iEnt, pev_frame, 255);
+				set_pev(iEnt, pev_framerate, -1.0);
+			}
+			case TURRET_ANIM_DIE:
+				set_pev(iEnt, pev_framerate, 1.0);
+		}
+	}
+}
+
+stock Turret_MoveTurret(iEnt, Float:vecTarget[3])
+{
+	new state = 0;
+	// any x movement?
+
+	new Float:vecCurAngles[3]; 
+	new Float:vecAngles[3];
+	new Float:fTurnRate;
+	new iOrientation = 0;
+
+	pev(iEnt, TURRET_PEV_CURRENT_ANGLES, vecCurAngles);
+	pev(iEnt, TURRET_TURN_RATES,	 fTurnRate);
+	pev(iEnt, TURRET_ORIENTATION,	 iOrientation);
+
+	if( vecCurAngles[0] != vecTarget[0] )
+	{
+		new Float:flDir = vecTarget[0] > vecCurAngles[0] ? 1 : -1 ;
+
+		vecCurAngles[0] += 0.1 * fTurnRate * flDir;
+
+		// if we started below the goal, and now we're past, peg to goal
+		if( flDir == 1 )
+		{
+			if( vecCurAngles[0] > vecTarget[0] )
+				vecCurAngles[0] = vecTarget[0];
+		} 
+		else
+		{
+			if( vecCurAngles[0] < vecTarget[0] )
+				vecCurAngles[0] = vecTarget[0];
+		}
+
+		if( iOrientation == 0 )
+			set_controller(iEnt, 1, vecCurAngles[0]);
+		else
+			set_controller(iEnt, 1, vecCurAngles[0]);
+
+		state = 1;
+	}
+
+	if( vecCurAngles[1] != vecTarget[1] )
+	{
+		new Float:flDir		= vecTarget[1] > vecCurAngles[1] ? 1 : -1 ;
+		new Float:flDist	= fabs(vecTarget[1] - vecCurAngles[1]);
+
+		if( flDist > 180.0 )
+		{
+			flDist	= 360.0 - flDist;
+			flDir	= -flDir;
+		}
+
+		if( flDist > 30.0 )
+		{
+			if( fTurnRate < TURRET_TURNRATE * 10.0 )
+			{
+				fTurnRate += TURRET_TURNRATE;
+			}
+		}
+		else if( fTurnRate > 45.0 )
+			fTurnRate -= TURRET_TURNRATE;
+		else
+			fTurnRate += TURRET_TURNRATE;
+
+		vecCurAngles[1] += 0.1 * fTurnRate * flDir;
+
+		if( vecCurAngles[1] < 0 )
+			vecCurAngles[1] += 360.0;
+		else if( vecCurAngles[1] >= 360.0 )
+			vecCurAngles[1] -= 360.0;
+
+		if( flDist < ( 0.05 * TURRET_TURNRATE ) )
+			vecCurAngles[1] = vecTarget[1];
+
+		//ALERT( at_console, "%.2f -> %.2f\n", m_vecCurAngles.y, y );
+		pev(iEnt, pev_angles, vecAngles);
+		if( iOrientation == 0 )
+			set_controller(iEnt, 0, vecCurAngles[1] - vecAngles[1])
+		else 
+			set_controller(iEnt, 0, vecAngles[1] - 180.0 - vecCurAngles[1]);
+
+		state = 1;
+	}
+
+	if( !state )
+		fTurnRate = TURRET_TURNRATE;
+
+	set_pev(iEnt, TURRET_PEV_CURRENT_ANGLES, vecCurAngles);
+	set_pev(iEnt, TURRET_TURN_RATES, fTurnRate);
+
+	return state;
+}
+
+stock Float:UTIL_AngleMod( Float:a )
+{
+	a = floatmod( a, 360.0 );
+	if( a < 0 )
+		a += 360;
+	return a;
+}
+
+stock Float:floatmod( Float:a, Float:n, mode = 0 )
+{
+    new Float:result = a - n * floatround( a / n )
+    if ( mode )
+        if ( a < 0 ) result = -floatabs( result )
+        else result = floatabs( result )
+    else
+        if ( n < 0 ) result = -floatabs( result )
+        else result = floatabs( result ) 
+
+    return result
+} 
+
+//
+// This search function will sit with the turret deployed and look for a new target. 
+// After a set amount of time, the barrel will spin down. After m_flMaxWait, the turret will
+// retact.
+//
+stock Turret_SearchThink(iEnt)
+{
+	// ensure rethink
+	SetTurretAnim(TURRET_ANIM_SPIN);
+	StudioFrameAdvance();
+	set_pev(iEnt, pev_nextthink, get_gametime() + 0.1);
+
+	if( m_flSpinUpTime == 0 && m_flMaxSpin )
+		m_flSpinUpTime = gpGlobals->time + m_flMaxSpin;
+
+	Ping();
+
+	// If we have a target and we're still healthy
+	if( m_hEnemy != 0 )
+	{
+		if( !m_hEnemy->IsAlive() )
+			m_hEnemy = NULL;// Dead enemy forces a search for new one
+	}
+
+	// Acquire Target
+	if( m_hEnemy == 0 )
+	{
+		Look( TURRET_RANGE );
+		m_hEnemy = BestVisibleEnemy();
+	}
+
+	// If we've found a target, spin up the barrel and start to attack
+	if( m_hEnemy != 0 )
+	{
+		m_flLastSight = 0;
+		m_flSpinUpTime = 0;
+		SetThink( &CBaseTurret::ActiveThink );
+	}
+	else
+	{
+		// Are we out of time, do we need to retract?
+ 		if( gpGlobals->time > m_flLastSight )
+		{
+			//Before we retrace, make sure that we are spun down.
+			m_flLastSight = 0;
+			m_flSpinUpTime = 0;
+			SetThink( &CBaseTurret::Retire );
+		}
+		// should we stop the spin?
+		else if( ( m_flSpinUpTime ) && ( gpGlobals->time > m_flSpinUpTime ) )
+		{
+			SpinDownCall();
+		}
+		
+		// generic hunt for new victims
+		m_vecGoalAngles.y = ( m_vecGoalAngles.y + 0.1f * m_fTurnRate );
+		if( m_vecGoalAngles.y >= 360 )
+			m_vecGoalAngles.y -= 360;
+		MoveTurret();
+	}
+}
+
+stock Turret_ActiveThink(iEnt)
+{
+	int fAttack = 0;
+	Vector vecDirToEnemy;
+
+	pev->nextthink = gpGlobals->time + 0.1f;
+	StudioFrameAdvance();
+
+	if( ( !m_iOn ) || ( m_hEnemy == 0 ) )
+	{
+		m_hEnemy = NULL;
+		m_flLastSight = gpGlobals->time + m_flMaxWait;
+		SetThink( &CBaseTurret::SearchThink );
+		return;
+	}
+
+	// if it's dead, look for something new
+	if( !m_hEnemy->IsAlive() )
+	{
+		if( !m_flLastSight )
+		{
+			m_flLastSight = gpGlobals->time + 0.5f; // continue-shooting timeout
+		}
+		else
+		{
+			if( gpGlobals->time > m_flLastSight )
+			{
+				m_hEnemy = NULL;
+				m_flLastSight = gpGlobals->time + m_flMaxWait;
+				SetThink( &CBaseTurret::SearchThink );
+				return;
+			}
+		}
+	}
+
+	Vector vecMid = pev->origin + pev->view_ofs;
+	Vector vecMidEnemy = m_hEnemy->BodyTarget( vecMid );
+
+	// Look for our current enemy
+	int fEnemyVisible = FBoxVisible( pev, m_hEnemy->pev, vecMidEnemy );	
+
+	vecDirToEnemy = vecMidEnemy - vecMid;	// calculate dir and dist to enemy
+	float flDistToEnemy = vecDirToEnemy.Length();
+
+	Vector vec = UTIL_VecToAngles( vecMidEnemy - vecMid );
+
+	// Current enmey is not visible.
+	if( !fEnemyVisible || ( flDistToEnemy > TURRET_RANGE ) )
+	{
+		if( !m_flLastSight )
+			m_flLastSight = gpGlobals->time + 0.5f;
+		else
+		{
+			// Should we look for a new target?
+			if( gpGlobals->time > m_flLastSight )
+			{
+				m_hEnemy = NULL;
+				m_flLastSight = gpGlobals->time + m_flMaxWait;
+				SetThink( &CBaseTurret::SearchThink );
+				return;
+			}
+		}
+		fEnemyVisible = 0;
+	}
+	else
+	{
+		m_vecLastSight = vecMidEnemy;
+	}
+
+	UTIL_MakeAimVectors( m_vecCurAngles );
+
+	/*
+	ALERT( at_console, "%.0f %.0f : %.2f %.2f %.2f\n", 
+		m_vecCurAngles.x, m_vecCurAngles.y,
+		gpGlobals->v_forward.x, gpGlobals->v_forward.y, gpGlobals->v_forward.z );
+	*/
+	
+	Vector vecLOS = vecDirToEnemy; //vecMid - m_vecLastSight;
+	vecLOS = vecLOS.Normalize();
+
+	// Is the Gun looking at the target
+	if( DotProduct( vecLOS, gpGlobals->v_forward ) <= 0.866f ) // 30 degree slop
+		fAttack = FALSE;
+	else
+		fAttack = TRUE;
+
+	// fire the gun
+	if( m_iSpin && ( ( fAttack ) || ( m_fBeserk ) ) )
+	{
+		Vector vecSrc, vecAng;
+		GetAttachment( 0, vecSrc, vecAng );
+		SetTurretAnim( TURRET_ANIM_FIRE );
+		Shoot( vecSrc, gpGlobals->v_forward );
+	} 
+	else
+	{
+		SetTurretAnim( TURRET_ANIM_SPIN );
+	}
+
+	//move the gun
+	if( m_fBeserk )
+	{
+		if( RANDOM_LONG( 0, 9 ) == 0 )
+		{
+			m_vecGoalAngles.y = RANDOM_FLOAT( 0, 360 );
+			m_vecGoalAngles.x = RANDOM_FLOAT( 0, 90 ) - 90 * m_iOrientation;
+			TakeDamage( pev, pev, 1, DMG_GENERIC ); // don't beserk forever
+			return;
+		}
+	} 
+	else if( fEnemyVisible )
+	{
+		if( vec.y > 360 )
+			vec.y -= 360;
+
+		if( vec.y < 0 )
+			vec.y += 360;
+
+		//ALERT( at_console, "[%.2f]", vec.x );
+
+		if( vec.x < -180 )
+			vec.x += 360;
+
+		if( vec.x > 180 )
+			vec.x -= 360;
+
+		// now all numbers should be in [1...360]
+		// pin to turret limitations to [-90...15]
+
+		if( m_iOrientation == 0 )
+		{
+			if( vec.x > 90 )
+				vec.x = 90;
+			else if( vec.x < m_iMinPitch )
+				vec.x = m_iMinPitch;
+		}
+		else
+		{
+			if( vec.x < -90 )
+				vec.x = -90;
+			else if( vec.x > -m_iMinPitch )
+				vec.x = -m_iMinPitch;
+		}
+
+		// ALERT( at_console, "->[%.2f]\n", vec.x );
+
+		m_vecGoalAngles.y = vec.y;
+		m_vecGoalAngles.x = vec.x;
+	}
+
+	SpinUpCall();
+	MoveTurret();
 }
