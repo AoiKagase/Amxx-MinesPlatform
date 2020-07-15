@@ -53,7 +53,9 @@
 #define MAX_TURRET					40
 #define ENT_CLASS_TURRET			"sentry_turret"
 
-#define TURRET_MAXWAIT				15
+#define TURRET_SHOTS				2
+#define TURRET_RANGE				(100 * 12)
+#define TURRET_SPREAD				Float:{0.0, 0.0, 0.0}
 #define TURRET_TURNRATE				30	//angles per 0.1 second
 #define TURRET_MAXWAIT				15	// seconds turret will stay active w/o a target
 #define TURRET_MAXSPIN				5	// seconds turret barrel will spin w/o a target
@@ -1050,104 +1052,6 @@ void CBaseTurret::Retire(void)
 	}
 }
 
-
-void CTurret::SpinUpCall(void)
-{
-	StudioFrameAdvance( );
-	pev->nextthink = gpGlobals->time + 0.1;
-
-	// Are we already spun up? If not start the two stage process.
-	if (!m_iSpin)
-	{
-		SetTurretAnim( TURRET_ANIM_SPIN );
-		// for the first pass, spin up the the barrel
-		if (!m_iStartSpin)
-		{
-			pev->nextthink = gpGlobals->time + 1.0; // spinup delay
-			EMIT_SOUND(ENT(pev), CHAN_BODY, "turret/tu_spinup.wav", TURRET_MACHINE_VOLUME, ATTN_NORM);
-			m_iStartSpin = 1;
-			pev->framerate = 0.1;
-		}
-		// after the barrel is spun up, turn on the hum
-		else if (pev->framerate >= 1.0)
-		{
-			pev->nextthink = gpGlobals->time + 0.1; // retarget delay
-			EMIT_SOUND(ENT(pev), CHAN_STATIC, "turret/tu_active2.wav", TURRET_MACHINE_VOLUME, ATTN_NORM);
-			SetThink(&CTurret::ActiveThink);
-			m_iStartSpin = 0;
-			m_iSpin = 1;
-		} 
-		else
-		{
-			pev->framerate += 0.075;
-		}
-	}
-
-	if (m_iSpin)
-	{
-		SetThink(&CTurret::ActiveThink);
-	}
-}
-
-
-void CTurret::SpinDownCall(void)
-{
-	if (m_iSpin)
-	{
-		SetTurretAnim( TURRET_ANIM_SPIN );
-		if (pev->framerate == 1.0)
-		{
-			EMIT_SOUND_DYN(ENT(pev), CHAN_STATIC, "turret/tu_active2.wav", 0, 0, SND_STOP, 100);
-			EMIT_SOUND(ENT(pev), CHAN_ITEM, "turret/tu_spindown.wav", TURRET_MACHINE_VOLUME, ATTN_NORM);
-		}
-		pev->framerate -= 0.02;
-		if (pev->framerate <= 0)
-		{
-			pev->framerate = 0;
-			m_iSpin = 0;
-		}
-	}
-}
-
-
-void CBaseTurret::SetTurretAnim(TURRET_ANIM anim)
-{
-	if (pev->sequence != anim)
-	{
-		switch(anim)
-		{
-		case TURRET_ANIM_FIRE:
-		case TURRET_ANIM_SPIN:
-			if (pev->sequence != TURRET_ANIM_FIRE && pev->sequence != TURRET_ANIM_SPIN)
-			{
-				pev->frame = 0;
-			}
-			break;
-		default:
-			pev->frame = 0;
-			break;
-		}
-
-		pev->sequence = anim;
-		ResetSequenceInfo( );
-
-		switch(anim)
-		{
-		case TURRET_ANIM_RETIRE:
-			pev->frame			= 255;
-			pev->framerate		= -1.0;
-			break;
-		case TURRET_ANIM_DIE:
-			pev->framerate		= 1.0;
-			break;
-		default:
-			break;
-		}
-		//ALERT(at_console, "Turret anim #%d\n", anim);
-	}
-}
-
-
 //
 // This search function will sit with the turret deployed and look for a new target. 
 // After a set amount of time, the barrel will spin down. After m_flMaxWait, the turret will
@@ -1210,7 +1114,8 @@ void CBaseTurret::SearchThink(void)
 		MoveTurret();
 	}
 }
-
+	virtual void EXPORT SpinDownCall(void) { m_iSpin = 0; }
+	virtual void EXPORT SpinUpCall(void) { m_iSpin = 1; }
 
 // 
 // This think function will deploy the turret when something comes into range. This is for
@@ -1639,4 +1544,147 @@ stock Turret_ActiveThink(iEnt)
 
 	SpinUpCall();
 	MoveTurret();
+}
+
+/*
+================
+FireBullets
+Go to the trouble of combining multiple pellets into a single damage call.
+This version is used by Monsters.
+================
+param: iEnt
+param: cShot = 1
+*/
+//	  FireBullets(iEnt, 1, 			vecSrc, 		 vecDirToEnemy, 		  TURRET_SPREAD, 	  TURRET_RANGE, 	BULLET_MONSTER_MP5, 1 );
+stock FireBullets
+(	
+	iEnt,
+	cShots 		= 1,
+	Float:vecSrc		[3], 
+	Float:vecDirShooting[3], 
+	Float:vecSpread		[3], 
+	Float:flDistance, 
+	iBulletType, 
+	iTracerFreq = 4, 
+	iDamage 	= 0, 
+	&pevAttacker
+)
+{
+	static tracerCount;
+	static tracer;
+	static tr = create_tr2();
+
+	new Float:vecRight	[3]	= gpGlobals->v_right;
+	new Float:vecUp		[3]	= gpGlobals->v_up;
+
+	if( pevAttacker == NULL )
+		pevAttacker = pev;  // the default attacker is ourselves
+
+	ClearMultiDamage();
+	gMultiDamage.type = DMG_BULLET | DMG_NEVERGIB;
+
+	for( ULONG iShot = 1; iShot <= cShots; iShot++ )
+	{
+		// get circular gaussian spread
+		float x, y, z;
+		do {
+			x = RANDOM_FLOAT( -0.5f, 0.5f ) + RANDOM_FLOAT( -0.5f, 0.5f );
+			y = RANDOM_FLOAT( -0.5f, 0.5f ) + RANDOM_FLOAT( -0.5f, 0.5f );
+			z = x * x + y * y;
+		} while (z > 1);
+
+		Vector vecDir = vecDirShooting +
+						x * vecSpread.x * vecRight +
+						y * vecSpread.y * vecUp;
+		Vector vecEnd;
+
+		vecEnd = vecSrc + vecDir * flDistance;
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev )/*pentIgnore*/, &tr );
+
+		tracer = 0;
+		if( iTracerFreq != 0 && ( tracerCount++ % iTracerFreq ) == 0 )
+		{
+			Vector vecTracerSrc;
+
+			if( IsPlayer() )
+			{
+				// adjust tracer position for player
+				vecTracerSrc = vecSrc + Vector( 0.0f, 0.0f, -4.0f ) + gpGlobals->v_right * 2.0f + gpGlobals->v_forward * 16.0f;
+			}
+			else
+			{
+				vecTracerSrc = vecSrc;
+			}
+
+			if( iTracerFreq != 1 )		// guns that always trace also always decal
+				tracer = 1;
+			switch( iBulletType )
+			{
+			case BULLET_MONSTER_MP5:
+			case BULLET_MONSTER_9MM:
+			case BULLET_MONSTER_12MM:
+			default:
+				MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, vecTracerSrc );
+					WRITE_BYTE( TE_TRACER );
+					WRITE_COORD( vecTracerSrc.x );
+					WRITE_COORD( vecTracerSrc.y );
+					WRITE_COORD( vecTracerSrc.z );
+					WRITE_COORD( tr.vecEndPos.x );
+					WRITE_COORD( tr.vecEndPos.y );
+					WRITE_COORD( tr.vecEndPos.z );
+				MESSAGE_END();
+				break;
+			}
+		}
+		// do damage, paint decals
+		if( tr.flFraction != 1.0f )
+		{
+			CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+
+			if( iDamage )
+			{
+				pEntity->TraceAttack( pevAttacker, iDamage, vecDir, &tr, DMG_BULLET | ( ( iDamage > 16 ) ? DMG_ALWAYSGIB : DMG_NEVERGIB ) );
+
+				TEXTURETYPE_PlaySound( &tr, vecSrc, vecEnd, iBulletType );
+				DecalGunshot( &tr, iBulletType );
+			} 
+			else switch( iBulletType )
+			{
+			default:
+			case BULLET_MONSTER_9MM:
+				pEntity->TraceAttack( pevAttacker, gSkillData.monDmg9MM, vecDir, &tr, DMG_BULLET );
+
+				TEXTURETYPE_PlaySound( &tr, vecSrc, vecEnd, iBulletType );
+				DecalGunshot( &tr, iBulletType );
+				break;
+			case BULLET_MONSTER_MP5:
+				pEntity->TraceAttack( pevAttacker, gSkillData.monDmgMP5, vecDir, &tr, DMG_BULLET );
+
+				TEXTURETYPE_PlaySound( &tr, vecSrc, vecEnd, iBulletType );
+				DecalGunshot( &tr, iBulletType );
+				break;
+			case BULLET_MONSTER_12MM:
+				pEntity->TraceAttack( pevAttacker, gSkillData.monDmg12MM, vecDir, &tr, DMG_BULLET );
+				if( !tracer )
+				{
+					TEXTURETYPE_PlaySound( &tr, vecSrc, vecEnd, iBulletType );
+					DecalGunshot( &tr, iBulletType );
+				}
+				break;
+			case BULLET_NONE: // FIX
+				pEntity->TraceAttack( pevAttacker, 50, vecDir, &tr, DMG_CLUB );
+				TEXTURETYPE_PlaySound( &tr, vecSrc, vecEnd, iBulletType );
+				// only decal glass
+				if( !FNullEnt( tr.pHit ) && VARS( tr.pHit )->rendermode != 0 )
+				{
+					UTIL_DecalTrace( &tr, DECAL_GLASSBREAK1 + RANDOM_LONG( 0, 2 ) );
+				}
+
+				break;
+			}
+		}
+		// make bullet trails
+		UTIL_BubbleTrail( vecSrc, tr.vecEndPos, (int)( ( flDistance * tr.flFraction ) / 64.0f ) );
+	}
+	ApplyMultiDamage( pev, pevAttacker );
 }
