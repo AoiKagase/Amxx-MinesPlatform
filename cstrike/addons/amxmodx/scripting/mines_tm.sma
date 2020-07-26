@@ -443,6 +443,7 @@ set_mine_position(uID, iEnt)
 	new Float:vOrigin	[3],Float:vViewOfs	[3];
 	new	Float:vNewOrigin[3],Float:vNormal	[3];
 	new	Float:vTraceEnd	[3],Float:vEntAngles[3];
+	new Float:vDecals	[3];
 
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
@@ -471,6 +472,7 @@ set_mine_position(uID, iEnt)
     // free the trace handle.
 	free_tr2(trace);
 
+	xs_vec_add( vTraceEnd, vNormal, vDecals);
 	xs_vec_mul_scalar( vNormal, 8.0, vNormal );
 	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
 

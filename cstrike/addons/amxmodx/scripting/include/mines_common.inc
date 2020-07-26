@@ -128,18 +128,23 @@ stock CsTeams:get_team_code(const arg[])
 // Cvar to Color Bit.
 stock get_cvar_to_color(const args[])
 {
-	new i = 0, n = 0, iPos = 0;
 	new values[3];
+	get_cvar_to_array(args, values, 3);
+	return set_color(values[0], values[1], values[2]);
+}
+
+stock get_cvar_to_array(const args[], values[], size)
+{
+	new i = 0, n = 0, iPos = 0;
 	new sSplit		[20];
 	new sSplitLen = charsmax(sSplit);
-	new color[13];
+	new argsb[255];
 
-	formatex(color, charsmax(color), "%s%s", args, ",");
-	while((i = split_string(color[iPos += i], ",", sSplit, sSplitLen)) != -1 && n < sizeof(values))
+	formatex(argsb, charsmax(argsb), "%s%s", args, ",");
+	while((i = split_string(argsb[iPos += i], ",", sSplit, sSplitLen)) != -1 && n < size)
 	{
 		values[n++] = str_to_num(sSplit);
 	}
-	return set_color(values[0], values[1], values[2]);
 }
 
 // Glowing.
@@ -180,6 +185,13 @@ stock mines_glow(iEnt, const minesData[COMMON_MINES_DATA])
 		set_pev(iEnt, pev_renderamt, 	float(5));
 	}
 	return PLUGIN_CONTINUE;
+}
+
+stock get_cvar_to_vector(const args[], Float:vector[3])
+{
+	new values[3];
+	get_cvar_to_array(args, values, 3);
+	xs_set_vec(vector, float(values[0]), float(values[1]), float(values[2]));
 }
 
 //====================================================

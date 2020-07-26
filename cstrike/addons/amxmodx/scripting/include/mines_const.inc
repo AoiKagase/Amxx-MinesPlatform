@@ -56,8 +56,17 @@
 #define MINES_OWNER					pev_iuser1
 #define MINES_OWNER_ID				pev_message
 #define MINES_STEP					pev_iuser3
+#define MINES_DECALS				pev_vuser1
+
 #define MAX_CLASS_LENGTH			16
 #define MAX_MODEL_LENGTH			32
+#define MAX_EXPLOSION_DECALS 		3
+#define MAX_BLOOD_DECALS 			10
+
+#define DEPLOY_FLY					0x01
+#define DEPLOY_WALL					0x02
+#define DEPLOY_GROUND				0x04
+
 //====================================================
 // ENUM AREA
 //====================================================
@@ -106,51 +115,58 @@ enum _:TRIPMINE_DMGMODE
 //
 enum _:ERROR
 {
-	NONE				= 0,
-	NOT_ACTIVE			,
-	NOT_ACCESS			,
-	DONT_HAVE			,
-	CANT_BUY_TEAM		,
-	CANT_BUY			,
-	HAVE_MAX			,
-	NO_MONEY			,
-	MAXIMUM_DEPLOYED	,
-	MANY_PPL			,
-	DELAY_TIME			,
-	NOT_ALIVE			,
-	MUST_WALL			,
-	MUST_GROUND			,
-	NOT_IMPLEMENT		,
-	NOT_BUYZONE			,
-	NO_ROUND			,
+	NONE					= 0,
+	NOT_ACTIVE				,
+	NOT_ACCESS				,
+	DONT_HAVE				,
+	CANT_BUY_TEAM			,
+	CANT_BUY				,
+	HAVE_MAX				,
+	NO_MONEY				,
+	MAXIMUM_DEPLOYED		,
+	MANY_PPL				,
+	DELAY_TIME				,
+	NOT_ALIVE				,
+	MUST_WALL				,
+	MUST_GROUND				,
+	NOT_IMPLEMENT			,
+	NOT_BUYZONE				,
+	NO_ROUND				,
 };
 
 enum _:COMMON_MINES_DATA
 {
-	AMMO_HAVE_START		,
-	AMMO_HAVE_MAX		,
-	NO_ROUND			,
-	DEPLOY_MAX			,
-	DEPLOY_TEAM_MAX		,
-	BUY_MODE			,
-	BUY_PRICE			,
-	BUY_ZONE			,
-	CsTeams:BUY_TEAM	,
-	FRAG_MONEY			,
-	MINES_BROKEN		,
-	ALLOW_PICKUP		,
-	DEATH_REMOVE		,
-	GLOW_ENABLE			,
-	GLOW_MODE			,
-	GLOW_COLOR_TR		,
-	GLOW_COLOR_CT		,
-	Float:ACTIVATE_TIME	,
-	Float:MINE_HEALTH	,
-	Float:EXPLODE_RADIUS,
-	Float:EXPLODE_DAMAGE,
-	EXPLODE_SPRITE		,
+	AMMO_HAVE_START			,
+	AMMO_HAVE_MAX			,
+	NO_ROUND				,
+	DEPLOY_MAX				,
+	DEPLOY_TEAM_MAX			,
+	DEPLOY_POSITION			,	// FLY, GROUND, WALL
+	BUY_MODE				,
+	BUY_PRICE				,
+	BUY_ZONE				,
+	CsTeams:BUY_TEAM		,
+	FRAG_MONEY				,
+	MINES_BROKEN			,
+	ALLOW_PICKUP			,
+	DEATH_REMOVE			,
+	GLOW_ENABLE				,
+	GLOW_MODE				,
+	GLOW_COLOR_TR			,
+	GLOW_COLOR_CT			,
+	Float:ACTIVATE_TIME		,
+	Float:MINE_HEALTH		,
+	Float:EXPLODE_RADIUS	,
+	Float:EXPLODE_DAMAGE	,
+	Float:DEPLOY_OFFSET_ANGLE[3],
+	EXPLODE_SPRITE1			,
+	EXPLODE_SPRITE2			,
+	EXPLODE_SPRITE_BLAST	,
+	EXPLODE_SPRITE_SMOKE	,
+	EXPLODE_SPRITE_WATER	,
+	EXPLODE_SPRITE_BUBBLE	,
 #if defined ZP_SUPPORT
-	ZP_WEAPON_ID		,
+	ZP_WEAPON_ID			,
 #endif
 }
 
@@ -187,4 +203,24 @@ enum _:PICKUP_MODE
 	ALLOW_ENEMY				,
 }
 
-#include <mines_common>
+enum _:E_SOUNDS
+{
+	PICKUP							,
+	BUTTON							,
+	GLASS_1							,
+	GLASS_2							,
+}
+
+enum _:E_SPRITES
+{
+	EXPLOSION_1						,
+	EXPLOSION_2						,
+	EXPLOSION_WATER					,
+	BLAST							,
+	SMOKE							,
+	BUBBLE							,
+	BLOOD_SPLASH					,
+	BLOOD_SPRAY						,
+};
+
+//#include <mines_common>

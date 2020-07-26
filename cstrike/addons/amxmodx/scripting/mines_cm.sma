@@ -81,6 +81,7 @@ enum _:CVAR_SETTING
 	CVAR_MINE_GLOW_CT     	,   	// Glowing color for CT.
 	CVAR_MINE_GLOW_TR    	,   	// Glowing color for T.
 	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
+	CVAR_MINE_OFFSET_ANGLE	,		// MODEL OFFSET ANGLE
 	CVAR_DEATH_REMOVE		,		// Dead Player Remove Claymore.
 	CVAR_CM_ACTIVATE		,		// Waiting for put claymore. (0 = no progress bar.)
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
@@ -138,6 +139,7 @@ enum _:CVAR_VALUE
 	VALUE_CM_RIGHT_YAW		[20],		// Claymore Wire Area Right Yaw.
 	VALUE_CM_WIRE_COLOR_T	[13],
 	VALUE_CM_WIRE_COLOR_CT	[13],
+	VALUE_MINE_OFFSET_ANGLE	[13],		// MODEL OFFSET ANGLE
 };
 
 //====================================================
@@ -172,49 +174,49 @@ public plugin_init()
 	
 	// CVar settings.
 	// Ammo.
-	gCvar[CVAR_START_HAVE]	    = create_cvar(fmt("%s%s", CVAR_TAG, "_amount"),					"1"				);	// Round start have ammo count.
-	gCvar[CVAR_MAX_HAVE]       	= create_cvar(fmt("%s%s", CVAR_TAG, "_max_amount"),   			"2"				);	// Max having ammo.
-	gCvar[CVAR_TEAM_MAX]		= create_cvar(fmt("%s%s", CVAR_TAG, "_team_max"),				"10"			);	// Max deployed in team.
-	gCvar[CVAR_MAX_DEPLOY]		= create_cvar(fmt("%s%s", CVAR_TAG, "_max_deploy"),				"10"			);	// Max deployed in user.
+	gCvar[CVAR_START_HAVE]	    	= create_cvar(fmt("%s%s", CVAR_TAG, "_amount"),					"1"				);	// Round start have ammo count.
+	gCvar[CVAR_MAX_HAVE]       		= create_cvar(fmt("%s%s", CVAR_TAG, "_max_amount"),   			"2"				);	// Max having ammo.
+	gCvar[CVAR_TEAM_MAX]			= create_cvar(fmt("%s%s", CVAR_TAG, "_team_max"),				"10"			);	// Max deployed in team.
+	gCvar[CVAR_MAX_DEPLOY]			= create_cvar(fmt("%s%s", CVAR_TAG, "_max_deploy"),				"10"			);	// Max deployed in user.
 
 	// Buy system.
-	gCvar[CVAR_BUY_MODE]	    = create_cvar(fmt("%s%s", CVAR_TAG, "_buy_mode"),				"1"				);	// 0 = off, 1 = on.
-	gCvar[CVAR_CBT]    			= create_cvar(fmt("%s%s", CVAR_TAG, "_buy_team"),				"ALL"			);	// Can buy team. TR / CT / ALL. (BIOHAZARD: Z = Zombie)
-	gCvar[CVAR_COST]           	= create_cvar(fmt("%s%s", CVAR_TAG, "_buy_price"),				"2500"			);	// Buy cost.
-	gCvar[CVAR_BUY_ZONE]        = create_cvar(fmt("%s%s", CVAR_TAG, "_buy_zone"),				"1"				);	// Stay in buy zone can buy.
-	gCvar[CVAR_FRAG_MONEY]     	= create_cvar(fmt("%s%s", CVAR_TAG, "_frag_money"),   			"300"			);	// Get money.
+	gCvar[CVAR_BUY_MODE]	    	= create_cvar(fmt("%s%s", CVAR_TAG, "_buy_mode"),				"1"				);	// 0 = off, 1 = on.
+	gCvar[CVAR_CBT]    				= create_cvar(fmt("%s%s", CVAR_TAG, "_buy_team"),				"ALL"			);	// Can buy team. TR / CT / ALL. (BIOHAZARD: Z = Zombie)
+	gCvar[CVAR_COST]           		= create_cvar(fmt("%s%s", CVAR_TAG, "_buy_price"),				"2500"			);	// Buy cost.
+	gCvar[CVAR_BUY_ZONE]        	= create_cvar(fmt("%s%s", CVAR_TAG, "_buy_zone"),				"1"				);	// Stay in buy zone can buy.
+	gCvar[CVAR_FRAG_MONEY]     		= create_cvar(fmt("%s%s", CVAR_TAG, "_frag_money"),   			"300"			);	// Get money.
 
 	// Mine design.
-	gCvar[CVAR_MINE_HEALTH]    	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_health"),			"50"			);	// Tripmine Health. (Can break.)
-	gCvar[CVAR_MINE_GLOW]      	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow"),				"0"				);	// Tripmine glowing. 0 = off, 1 = on.
-	gCvar[CVAR_MINE_GLOW_MODE]  = create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_mode"),	"0"				);	// Mine glow coloer 0 = team color, 1 = green.
-	gCvar[CVAR_MINE_GLOW_TR]  	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_t"),		"255,0,0"		);	// Team-Color for Terrorist. default:red (R,G,B)
-	gCvar[CVAR_MINE_GLOW_CT]  	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_ct"),		"0,0,255"		);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
-	gCvar[CVAR_MINE_BROKEN]		= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_broken"),			"2"				);	// Can broken Mines.(0 = mines, 1 = Team, 2 = Enemy)
-	gCvar[CVAR_EXPLODE_RADIUS] 	= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_radius"),			"320.0"			);	// Explosion radius.
-	gCvar[CVAR_EXPLODE_DMG]		= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),			"100"			);	// Explosion radius damage.
+	gCvar[CVAR_MINE_HEALTH]    		= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_health"),			"50"			);	// Tripmine Health. (Can break.)
+	gCvar[CVAR_MINE_GLOW]      		= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow"),				"0"				);	// Tripmine glowing. 0 = off, 1 = on.
+	gCvar[CVAR_MINE_GLOW_MODE]  	= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_mode"),	"0"				);	// Mine glow coloer 0 = team color, 1 = green.
+	gCvar[CVAR_MINE_GLOW_TR]  		= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_t"),		"255,0,0"		);	// Team-Color for Terrorist. default:red (R,G,B)
+	gCvar[CVAR_MINE_GLOW_CT]  		= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_ct"),		"0,0,255"		);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_MINE_BROKEN]			= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_broken"),			"2"				);	// Can broken Mines.(0 = mines, 1 = Team, 2 = Enemy)
+	gCvar[CVAR_EXPLODE_RADIUS] 		= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_radius"),			"320.0"			);	// Explosion radius.
+	gCvar[CVAR_EXPLODE_DMG]			= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),			"100"			);	// Explosion radius damage.
 
 	// Misc Settings.
-	gCvar[CVAR_DEATH_REMOVE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"				);	// Dead Player remove claymore. 0 = off, 1 = on.
-	gCvar[CVAR_CM_ACTIVATE]		= create_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),			"1.0"			);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
-	gCvar[CVAR_ALLOW_PICKUP]	= create_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"				);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
+	gCvar[CVAR_DEATH_REMOVE]		= create_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"				);	// Dead Player remove claymore. 0 = off, 1 = on.
+	gCvar[CVAR_CM_ACTIVATE]			= create_cvar(fmt("%s%s", CVAR_TAG, "_activate_time"),			"1.0"			);	// Waiting for put claymore. (int:seconds. 0 = no progress bar.)
+	gCvar[CVAR_ALLOW_PICKUP]		= create_cvar(fmt("%s%s", CVAR_TAG, "_allow_pickup"),			"1"				);	// allow pickup mine. (0 = disable, 1 = it's mine, 2 = allow friendly mine, 3 = allow enemy mine!)
 
 	// Claymore Settings. (Color is Laser color)
-	gCvar[CVAR_CM_WIRE_VISIBLE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_visible"),			"1"				);	// wire visibility.
-	gCvar[CVAR_CM_WIRE_RANGE]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_range"),				"300"			);	// wire range.
-	gCvar[CVAR_CM_WIRE_BRIGHT]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_brightness"),		"255"			);	// wire brightness.
-	gCvar[CVAR_CM_WIRE_WIDTH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_width"),				"2"				);	// wire width.
-	gCvar[CVAR_CM_CENTER_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_pitch"),		"10,-65"		);	// wire area center pitch.
-	gCvar[CVAR_CM_CENTER_YAW]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_yaw"),		"45,135"		);	// wire area center yaw.
-	gCvar[CVAR_CM_LEFT_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_pitch"),		"10,-45"		);	// wire area left pitch.
-	gCvar[CVAR_CM_LEFT_YAW]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_yaw"),			"100,165"		);	// wire area left yaw.
-	gCvar[CVAR_CM_RIGHT_PITCH]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_pitch"),		"10,-45"		);	// wire area right pitch.
-	gCvar[CVAR_CM_RIGHT_YAW]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_yaw"),			"15,80"			);	// wire area right yaw.
-	gCvar[CVAR_CM_TRIAL_FREQ]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_trial_freq"),		"3"				);	// wire trial frequency.
-	gCvar[CVAR_CM_WIRE_COLOR]  	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_mode"),		"0"				);	// Mine glow coloer 0 = team color, 1 = green.
-	gCvar[CVAR_CM_WIRE_COLOR_T] = create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),			"255,255,255"	);	// Team-Color for Terrorist. default:red (R,G,B)
-	gCvar[CVAR_CM_WIRE_COLOR_CT]= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),			"255,255,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
-
+	gCvar[CVAR_CM_WIRE_VISIBLE]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_visible"),			"1"				);	// wire visibility.
+	gCvar[CVAR_CM_WIRE_RANGE]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_range"),				"300"			);	// wire range.
+	gCvar[CVAR_CM_WIRE_BRIGHT]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_brightness"),		"255"			);	// wire brightness.
+	gCvar[CVAR_CM_WIRE_WIDTH]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_width"),				"2"				);	// wire width.
+	gCvar[CVAR_CM_CENTER_PITCH]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_pitch"),		"10,-65"		);	// wire area center pitch.
+	gCvar[CVAR_CM_CENTER_YAW]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_center_yaw"),		"45,135"		);	// wire area center yaw.
+	gCvar[CVAR_CM_LEFT_PITCH]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_pitch"),		"10,-45"		);	// wire area left pitch.
+	gCvar[CVAR_CM_LEFT_YAW]			= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_left_yaw"),			"100,165"		);	// wire area left yaw.
+	gCvar[CVAR_CM_RIGHT_PITCH]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_pitch"),		"10,-45"		);	// wire area right pitch.
+	gCvar[CVAR_CM_RIGHT_YAW]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_right_yaw"),			"15,80"			);	// wire area right yaw.
+	gCvar[CVAR_CM_TRIAL_FREQ]		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_trial_freq"),		"3"				);	// wire trial frequency.
+	gCvar[CVAR_CM_WIRE_COLOR]  		= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_mode"),		"0"				);	// Mine glow coloer 0 = team color, 1 = green.
+	gCvar[CVAR_CM_WIRE_COLOR_T] 	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),			"255,255,255"	);	// Team-Color for Terrorist. default:red (R,G,B)
+	gCvar[CVAR_CM_WIRE_COLOR_CT]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),			"255,255,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
+	gCvar[CVAR_MINE_OFFSET_ANGLE] 	= create_cvar(fmt("%s%s", CVAR_TAG, "_offset_angle"), 			"-90,0,0"		);
 	create_cvar("mines_claymore", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
 	gMinesId 					= register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
@@ -298,6 +300,7 @@ public hook_cvars(pcvar, const old_value[], const new_value[])
 				case CVAR_CM_RIGHT_YAW		: copy(gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_CM_RIGHT_YAW]) 	- 1, new_value);// last comma - 1
 				case CVAR_CM_WIRE_COLOR_T	: copy(gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T]) - 1, new_value);// last comma - 1
 				case CVAR_CM_WIRE_COLOR_CT	: copy(gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1, new_value);// last comma - 1
+				case CVAR_MINE_OFFSET_ANGLE	: copy(gCvarValue[VALUE_MINE_OFFSET_ANGLE], charsmax(gCvarValue[VALUE_MINE_OFFSET_ANGLE])-1, new_value);// last comma - 1
 			}
 			break;
 		}
@@ -346,7 +349,7 @@ bind_cvars()
 	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_YAW],		gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_CM_RIGHT_YAW]) 	- 1);// last comma - 1
 	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_T],	gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T]) - 1);// last comma - 1
 	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_CT],	gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1);// last comma - 1
-
+	bind_pcvar_string	(gCvar[CVAR_MINE_OFFSET_ANGLE],	gCvarValue[VALUE_MINE_OFFSET_ANGLE],charsmax(gCvarValue[VALUE_MINE_OFFSET_ANGLE])- 1);// last comma - 1
 
 	update_mines_parameter();
 }
@@ -376,6 +379,8 @@ update_mines_parameter()
 	gMinesData[BUY_TEAM] 		=	_:get_team_code(gCvarValue[VALUE_CBT]);
 	gMinesData[GLOW_COLOR_TR]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_TR]);
 	gMinesData[GLOW_COLOR_CT]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_CT]);
+
+	get_cvar_to_vector(gCvarValue[VALUE_MINE_OFFSET_ANGLE], gMinesData[DEPLOY_OFFSET_ANGLE]);
 
 	register_mines_data(gMinesId, gMinesData, gEntModel);
 }
@@ -455,6 +460,7 @@ set_mine_position(uID, iEnt)
 	new Float:vOrigin[3];
 	new	Float:vNewOrigin[3],Float:vNormal[3],
 		Float:vTraceEnd[3],Float:vEntAngles[3];
+	new Float:vDecals	[3];
 
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
@@ -481,6 +487,7 @@ set_mine_position(uID, iEnt)
     // free the trace handle.
 	free_tr2(trace);
 
+	xs_vec_add( vTraceEnd, vNormal, vDecals);
 	xs_vec_mul_scalar( vNormal, 8.0, vNormal );
 	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
 
@@ -491,8 +498,7 @@ set_mine_position(uID, iEnt)
 	// Claymore user Angles.
 	new Float:pAngles[3];
 	pev(uID, pev_angles, pAngles);
-	pAngles[0]   = -90.0;
-	//pAngles[1]  += -90.0;
+	xs_vec_add(pAngles, gMinesData[DEPLOY_OFFSET_ANGLE], pAngles);
 
 	// Rotate tripmine.
 	vector_to_angle(vNormal, vEntAngles);

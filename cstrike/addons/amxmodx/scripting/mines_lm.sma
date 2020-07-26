@@ -503,6 +503,8 @@ set_mine_position(uID, iEnt)
 	new Float:vOrigin	[3],Float:vViewOfs	[3];
 	new	Float:vNewOrigin[3],Float:vNormal	[3],
 		Float:vTraceEnd	[3],Float:vEntAngles[3];
+	new Float:vDecals	[3];
+
 	// get user position.
 	pev(uID, pev_origin, 	vOrigin);
 	pev(uID, pev_view_ofs, 	vViewOfs);
@@ -526,6 +528,7 @@ set_mine_position(uID, iEnt)
 			get_tr2( trace, TR_vecPlaneNormal, vNormal );
 		}
 
+		xs_vec_add( vTraceEnd, vNormal, vDecals);
 		xs_vec_mul_scalar(vNormal, 8.0, vNormal);
 		xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
 		// // set entity position.
