@@ -10,6 +10,7 @@
 #endif
 #define _mines_common_included
 #include <mines_const>
+#include <xs>
 
 //====================================================
 // Gets offset data
@@ -187,11 +188,11 @@ stock mines_glow(iEnt, const minesData[COMMON_MINES_DATA])
 	return PLUGIN_CONTINUE;
 }
 
-stock get_cvar_to_vector(const args[], Float:vector[3])
+stock get_cvar_to_vector(const args[13], Float:vector[3])
 {
 	new values[3];
 	get_cvar_to_array(args, values, 3);
-	xs_set_vec(vector, float(values[0]), float(values[1]), float(values[2]));
+	xs_vec_set(vector, float(values[0]), float(values[1]), float(values[2]));
 }
 
 //====================================================

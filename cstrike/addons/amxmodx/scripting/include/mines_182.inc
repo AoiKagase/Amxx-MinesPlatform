@@ -18,6 +18,8 @@
 #define MAX_MENU_LENGTH 			512
 #define HIT_SHIELD					8
 #define Ham_CS_Player_ResetMaxSpeed Ham_Item_PreFrame
+#define ArrayGetData(%0,%1,%2,%3)	ArrayGetArray(%0,%1,%2)
+#define ArraySetData(%0,%1,%2,%3)	ArraySetArray(%0,%1,%2)
 
 stock ArrayFindString(Array:which, const item[])
 {
@@ -81,4 +83,7 @@ stock Float:xs_vec_distance(const Float:vec1[], const Float:vec2[])
 	               (vec1[1]-vec2[1]) * (vec1[1]-vec2[1]) +
 	               (vec1[2]-vec2[2]) * (vec1[2]-vec2[2]));
 }
+#else
+	#define ArrayGetData(%0,%1,%2,%3)	ArrayGetArray(%0,%1,%2,%3)
+	#define ArraySetData(%0,%1,%2,%3)	ArraySetArray(%0,%1,%2,%3)
 #endif

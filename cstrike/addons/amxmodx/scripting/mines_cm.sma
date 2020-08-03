@@ -380,7 +380,10 @@ update_mines_parameter()
 	gMinesData[GLOW_COLOR_TR]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_TR]);
 	gMinesData[GLOW_COLOR_CT]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_CT]);
 
-	get_cvar_to_vector(gCvarValue[VALUE_MINE_OFFSET_ANGLE], gMinesData[DEPLOY_OFFSET_ANGLE]);
+	new offsetAngle[13], Float:fOffsetAngle[3];
+	copy(offsetAngle, sizeof(offsetAngle), gCvarValue[VALUE_MINE_OFFSET_ANGLE]);
+	get_cvar_to_vector(offsetAngle, fOffsetAngle);
+	gMinesData[DEPLOY_OFFSET_ANGLE] = fOffsetAngle;
 
 	register_mines_data(gMinesId, gMinesData, gEntModel);
 }

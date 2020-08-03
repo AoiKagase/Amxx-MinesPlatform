@@ -15,9 +15,7 @@
 #if AMXX_VERSION_NUM < 182
 	#assert "AMX Mod X v1.8.2 or greater library required!"
 #endif
-#if AMXX_VERSION_NUM < 190
 #include <mines_182>
-#endif
 
 #define CHAT_TAG 					"[M.P]"
 #define ENT_CLASS_BREAKABLE			"func_breakable"

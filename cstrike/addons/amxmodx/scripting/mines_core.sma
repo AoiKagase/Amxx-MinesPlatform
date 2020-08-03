@@ -17,7 +17,6 @@
 #include <engine>
 #include <fakemeta>
 #include <hamsandwich>
-#include <xs>
 #include <mines_common>
 
 #if defined BIOHAZARD_SUPPORT
@@ -467,19 +466,12 @@ public _native_register_mines_data(iPlugin, iParams)
 	new iMinesId = get_param(1);
 	new minesModel	[MAX_MODEL_LENGTH];
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-	get_array	(2, minesData, COMMON_MINES_DATA);
-	ArraySetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-	get_string	(3, minesModel, charsmax(minesModel));
-	ArraySetString(gMinesModels, iMinesId, minesModel);
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-	get_array	(2, minesData, COMMON_MINES_DATA);
-	ArraySetArray(gMinesParameter, iMinesId, minesData);
-	get_string	(3, minesModel, charsmax(minesModel));
-	ArraySetString(gMinesModels, iMinesId, minesModel);
-#endif
+	ArrayGetData	(gMinesParameter,	iMinesId, minesData, sizeof(minesData));
+	get_array		(2, minesData, 		COMMON_MINES_DATA);
+	ArraySetData	(gMinesParameter,	iMinesId, minesData, sizeof(minesData));
+	get_string		(3, minesModel,		charsmax(minesModel));
+	ArraySetString	(gMinesModels,		iMinesId, minesModel);
+
 	#if defined ZP_SUPPORT
 		new zpWeaponId					= zp_items_register(className, minesData[BUY_PRICE]);
 		gZpGameMode[GMODE_ARMAGEDDON]	= zp_gamemodes_get_id("Armageddon Mode");
@@ -546,17 +538,11 @@ public _native_mines_explosion(iPlugin, iParams)
 
 	// reset deploy count.
 	// Count down. deployed lasermines.
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, 	sizeof(plData));
+	ArrayGetData(gPlayerData[id], iMinesId, plData, 	sizeof(plData));
 	plData[PL_COUNT_DEPLOYED]--;
-	ArraySetArray(gPlayerData[id], iMinesId, plData, 	sizeof(plData));
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gPlayerData[id], iMinesId, plData);
-	plData[PL_COUNT_DEPLOYED]--;
-	ArraySetArray(gPlayerData[id], iMinesId, plData);
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gPlayerData[id], iMinesId, plData, 	sizeof(plData));
+	ArrayGetData(gMinesParameter, iMinesId, minesData,	sizeof(minesData));
+
 	static sprBoom1;
 	static sprBoom2;
 	static sprBlast;
@@ -620,30 +606,30 @@ public _native_read_ini_resources(iPlugin, iParams)
 	return result;
 }
 
-//====================================================
-//  Bot Register Ham.
-//====================================================
-new g_bots_registered = false;
-public client_authorized( id )
-{
-	if( !g_bots_registered && is_user_bot( id ) )
-	{
-#if AMXX_VERSION_NUM > 182
-		set_task_ex( 0.1, "register_bots", id );
-#else
-		set_task( 0.1, "register_bots", id );
-#endif
-	}
-}
+// //====================================================
+// //  Bot Register Ham.
+// //====================================================
+// new g_bots_registered = false;
+// public client_authorized( id )
+// {
+// 	if( !g_bots_registered && is_user_bot( id ) )
+// 	{
+// #if AMXX_VERSION_NUM > 182
+// 		set_task_ex( 0.1, "register_bots", id );
+// #else
+// 		set_task( 0.1, "register_bots", id );
+// #endif
+// 	}
+// }
 
-public register_bots( id )
-{
-	if( !g_bots_registered && is_user_connected( id ) )
-	{
-		RegisterHamFromEntity(Ham_Killed, id, "PlayerKilling");
-		g_bots_registered = true;
-	}
-}
+// public register_bots( id )
+// {
+// 	if( !g_bots_registered && is_user_connected( id ) )
+// 	{
+// 		RegisterHamFromEntity(Ham_Killed, id, "PlayerKilling");
+// 		g_bots_registered = true;
+// 	}
+// }
 
 //====================================================
 // Friendly Fire Method.
@@ -686,17 +672,10 @@ public NewRound(id)
 		new plData[PLAYER_DATA];
 		for (new i = 0; i < ArraySize(gMinesClass); i++)
 		{
-#if AMXX_VERSION_NUM > 182
-			ArrayGetArray(gPlayerData[id], i, plData, sizeof(plData));
+			ArrayGetData(gPlayerData[id], i, plData, sizeof(plData));
 			// Delay time reset
 			plData[PL_COUNT_DELAY] = int:floatround(get_gametime());
-			ArraySetArray(gPlayerData[id], i, plData, sizeof(plData));
-#else
-			ArrayGetArray(gPlayerData[id], i, plData);
-			// Delay time reset
-			plData[PL_COUNT_DELAY] = int:floatround(get_gametime());
-			ArraySetArray(gPlayerData[id], i, plData);
-#endif
+			ArrayGetData(gPlayerData[id], i, plData, sizeof(plData));
 			// Removing already put mines.
 			mines_remove_all_entity_main(id, i);
 			// Round start set ammo.
@@ -733,11 +712,8 @@ set_start_ammo(id, iMinesId)
 {
 	static plData[PLAYER_DATA];
 	static minesData[COMMON_MINES_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	// Get CVAR setting.
 	new int:stammo = int:minesData[AMMO_HAVE_START];
 
@@ -745,21 +721,15 @@ set_start_ammo(id, iMinesId)
 	if(stammo <= int:0) 
 		return;
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArrayGetArray(gPlayerData[id], iMinesId, plData);
-#endif
+	ArrayGetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
+
 	// Getting have ammo.
 	new int:haveammo = plData[PL_COUNT_HAVE_MINE];
 
 	// Set largest.
 	plData[PL_COUNT_HAVE_MINE] = (haveammo <= stammo ? stammo : haveammo);
-#if AMXX_VERSION_NUM > 182
-	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArraySetArray(gPlayerData[id], iMinesId, plData);
-#endif
+	ArraySetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
+
 	return;
 }
 
@@ -793,11 +763,8 @@ public mines_progress_deploy(id, iMinesId)
 		return PLUGIN_HANDLED;
 
 	static minesData[COMMON_MINES_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	new Float:wait = Float:minesData[ACTIVATE_TIME];
 
 	// Set Flag. start progress.
@@ -852,11 +819,8 @@ public mines_progress_pickup(id, iMinesId)
 		return PLUGIN_HANDLED;
 
 	static minesData[COMMON_MINES_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	new Float:wait = Float:minesData[ACTIVATE_TIME];
 	if (wait > 0)
 		mines_show_progress(id, int:floatround(wait), gMsgBarTime);
@@ -915,20 +879,14 @@ public SpawnMine(params[], id)
 		get_user_authid(uID, authid, charsmax(authid));
 		set_pev(iEnt, pev_netname, authid);
 
-#if AMXX_VERSION_NUM > 182
-		ArrayGetArray(gPlayerData[uID], iMinesId, plData, sizeof(plData));
-#else
-		ArrayGetArray(gPlayerData[uID], iMinesId, plData);
-#endif
+		ArrayGetData(gPlayerData[uID], iMinesId, plData, sizeof(plData));
+
 		// Cound up. deployed.
 		plData[PL_COUNT_DEPLOYED]++;
 		// Cound down. have ammo.
 		plData[PL_COUNT_HAVE_MINE]--;
-#if AMXX_VERSION_NUM > 182
-		ArraySetArray(gPlayerData[uID], iMinesId, plData, sizeof(plData));
-#else
-		ArraySetArray(gPlayerData[uID], iMinesId, plData);
-#endif
+		ArraySetData(gPlayerData[uID], iMinesId, plData, sizeof(plData));
+
 		// Set Flag. end progress.
 		mines_set_user_deploy_state(uID, int:STATE_DEPLOYED);
 
@@ -985,11 +943,8 @@ public RemoveMine(params[], id)
 
 	new ownerID = pev(target, MINES_OWNER);
 	static minesData[COMMON_MINES_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	switch(PICKUP_MODE:minesData[PICKUP_MODE])
 	{
 		case DISALLOW_PICKUP:
@@ -1013,30 +968,17 @@ public RemoveMine(params[], id)
 	// Remove!
 	mines_remove_entity(target);
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gPlayerData[uID], iMinesId, plData, sizeof(plData));
+	ArrayGetData(gPlayerData[uID], iMinesId, plData, sizeof(plData));
 	// Collect for this removed mines.
 	plData[PL_COUNT_HAVE_MINE]++;
-	ArraySetArray(gPlayerData[uID], iMinesId, plData, sizeof(plData));
-#else
-	ArrayGetArray(gPlayerData[uID], iMinesId, plData);
-	// Collect for this removed mines.
-	plData[PL_COUNT_HAVE_MINE]++;
-	ArraySetArray(gPlayerData[uID], iMinesId, plData);
-#endif
+	ArraySetData(gPlayerData[uID], iMinesId, plData, sizeof(plData));
+
 	if (pev_valid(ownerID))
 	{
-#if AMXX_VERSION_NUM > 182
-		ArrayGetArray(gPlayerData[ownerID], iMinesId, plData, sizeof(plData));
+		ArrayGetData(gPlayerData[ownerID], iMinesId, plData, sizeof(plData));
 		// Return to before deploy count.
 		plData[PL_COUNT_DEPLOYED]--;
-		ArraySetArray(gPlayerData[ownerID], iMinesId, plData, sizeof(plData));
-#else
-		ArrayGetArray(gPlayerData[ownerID], iMinesId, plData);
-		// Return to before deploy count.
-		plData[PL_COUNT_DEPLOYED]--;
-		ArraySetArray(gPlayerData[ownerID], iMinesId, plData);
-#endif
+		ArraySetData(gPlayerData[ownerID], iMinesId, plData, sizeof(plData));
 	}
 	// Play sound.
 	emit_sound(uID, CHAN_ITEM, ENT_SOUNDS[PICKUP], VOL_NORM, ATTN_NORM, 0, PITCH_NORM);
@@ -1062,11 +1004,8 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 	if (iMinesId == -1)
 		return HAM_IGNORED;
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	// We get the ID of the player who put the mine.
 	new iOwner = pev(victim, MINES_OWNER);
 	switch(minesData[MINES_BROKEN])
@@ -1180,11 +1119,8 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 		{
 			if (get_distance_f(vStart, vHitPoint) < 200.0) 
 			{
-#if AMXX_VERSION_NUM > 182
-				ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-				ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+				ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 				iOwner = pev(iHit, MINES_OWNER);
 				mines_get_health(iHit, health);
 				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG[L_MINE_HUD], iOwner, floatround(health), floatround(Float:minesData[MINE_HEALTH]));
@@ -1211,11 +1147,7 @@ public PlayerKilling(iVictim, inflictor, iAttacker, Float:damage, bits)
 	if (iMinesId == -1)
 		return HAM_IGNORED;
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
 
 	if (is_user_alive(iVictim))
 	{
@@ -1314,11 +1246,7 @@ public PlayerCmdStart(id, handle, random_seed)
 			{
 				pev(iEnt, pev_classname, sClassName, charsmax(sClassName));
 				iMinesId = ArrayFindString(gMinesClass, sClassName);
-#if AMXX_VERSION_NUM > 182
-				ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-				ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+				ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
 
 				// Vector settings.
 				static	Float:vOrigin	[3],Float:vViewOfs	[3];
@@ -1483,21 +1411,15 @@ stock bool:CheckCommon(id, plData[PLAYER_DATA])
 stock bool:CheckDeploy(id, iMinesId)
 {
 	static plData[PLAYER_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, 	sizeof(plData));
-#else
-	ArrayGetArray(gPlayerData[id], iMinesId, plData);
-#endif
+	ArrayGetData(gPlayerData[id], iMinesId, plData, 	sizeof(plData));
+
 	// Check common.
 	if (!CheckCommon(id, plData))
 		return false;
 
 	static minesData[COMMON_MINES_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData,	sizeof(minesData));
+
 #if defined BIOHAZARD_SUPPORT
 	// Check Started Round.
 	if (!CheckRoundStarted(id, iMinesId, minesData))
@@ -1549,20 +1471,14 @@ stock bool:CheckRoundStarted(id, iMinesId, minesData[COMMON_MINES_DATA])
 public bool:CheckPickup(id, iMinesId)
 {
 	static plData[PLAYER_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArrayGetArray(gPlayerData[id], iMinesId, plData);
-#endif
+	ArrayGetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
+
 	if (!CheckCommon(id, plData))
 		return false;
 
 	static minesData[COMMON_MINES_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	// have max ammo? (use buy system.)
 	if (minesData[BUY_MODE])
 	{
@@ -1720,20 +1636,13 @@ show_ammo(id, iMinesId)
 	new minesData[COMMON_MINES_DATA];
 	new plData[PLAYER_DATA];
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
 	if (is_user_connected(id))
 	{
 		if (minesData[BUY_MODE] != 0)
 		{
-#if AMXX_VERSION_NUM > 182
-			ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-			ArrayGetArray(gPlayerData[id], iMinesId, plData);
-#endif
+			ArrayGetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
+
 			new sItemName[MAX_NAME_LENGTH];
 			ArrayGetString(gMinesLongName, iMinesId, sItemName, charsmax(sItemName));
 			formatex(ammo, charsmax(ammo), "%L", id, sItemName);
@@ -1805,11 +1714,8 @@ public mines_show_menu_sub(id, iMinesId)
 	formatex(sItemName, charsmax(sItemName), "%L", id, sItemName);
 	new menu = menu_create(fmt("%L", id, LANG[L_SUB_MENU_TITLE], sItemName), "mines_menu_sub_handler", false);
 	new minesData[COMMON_MINES_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	menu_additem(menu, fmt("%L", id, LANG[L_MENU_SELECT], 	sItemName), sMinesId, 0, gSubMenuCallback);
 #if defined ZP_SUPPORT
 	#if AMXX_VERSION_NUM > 182
@@ -1847,11 +1753,8 @@ public mines_submenu_callback(id, menu, item)
 	new iMinesId = str_to_num(szData);
 	new minesData[COMMON_MINES_DATA];
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	switch(item)
 	{
 		case 0:
@@ -1970,11 +1873,7 @@ public zp_fw_items_select_pre(id, itemid, ignorecost)
 	static iMinesId;
 	for(new i = 0; i < ArraySize(gMinesClass); i++)
 	{
-#if AMXX_VERSION_NUM > 182
-		ArrayGetArray(gMinesParameter, i, minesData, sizeof(minesData));
-#else
-		ArrayGetArray(gMinesParameter, i, minesData);
-#endif
+		ArrayGetData(gMinesParameter, i, minesData, sizeof(minesData));
 		if (minesData[ZP_WEAPON_ID] == itemid)
 		{
 			iMinesId = i;
@@ -1999,11 +1898,7 @@ public zp_fw_items_select_post(id, itemid, ignorecost)
 	new iMinesId;
 	for(new i = 0; i < ArraySize(gMinesClass); i++)
 	{
-#if AMXX_VERSION_NUM > 182
-		ArrayGetArray(gMinesParameter, i, minesData, sizeof(minesData));
-#else
-		ArrayGetArray(gMinesParameter, i, minesData);
-#endif
+		ArrayGetData(gMinesParameter, i, minesData, sizeof(minesData));
 		if (minesData[ZP_WEAPON_ID] == itemid)
 		{
 			iMinesId = i;
@@ -2112,11 +2007,7 @@ stock int:mines_get_team_deployed_count(id, iMinesId, plData[PLAYER_DATA])
 	count = int:0;
 	for(i = int:0;i < num;i++)
 	{
-#if AMXX_VERSION_NUM > 182
-		ArrayGetArray(gPlayerData[players[i]], iMinesId, plData, sizeof(plData));
-#else
-		ArrayGetArray(gPlayerData[players[i]], iMinesId, plData);
-#endif
+		ArrayGetData(gPlayerData[players[i]], iMinesId, plData, sizeof(plData));
 		count += plData[PL_COUNT_DEPLOYED];
 	}
 
@@ -2131,21 +2022,14 @@ stock mines_reset_have_mines(id)
 	new plData[PLAYER_DATA];
 	for(new i = 0; i < ArraySize(gMinesClass); i++)
 	{
-#if AMXX_VERSION_NUM > 182
-		ArrayGetArray(gPlayerData[id], i, plData, sizeof(plData));
-#else
-		ArrayGetArray(gPlayerData[id], i, plData);
-#endif
+		ArrayGetData(gPlayerData[id], i, plData, sizeof(plData));
+
 		// reset deploy count.
 		plData[PL_COUNT_DEPLOYED]	= int:0;
 		// reset hove mines.
 		plData[PL_COUNT_HAVE_MINE]	= int:0;
 
-#if AMXX_VERSION_NUM > 182
-		ArraySetArray(gPlayerData[id], i, plData, sizeof(plData));
-#else
-		ArraySetArray(gPlayerData[id], i, plData);
-#endif
+		ArraySetData(gPlayerData[id], i, plData, sizeof(plData));
 	}
 }
 
@@ -2159,11 +2043,8 @@ stock mines_remove_all_mines(id)
 
 	for(new i = 0; i < ArraySize(gMinesClass); i++)
 	{
-#if AMXX_VERSION_NUM > 182
-		ArrayGetArray(gMinesParameter, i, minesData, sizeof(minesData));
-#else
-		ArrayGetArray(gMinesParameter, i, minesData);
-#endif
+		ArrayGetData(gMinesParameter, i, minesData, sizeof(minesData));
+
 		// Dead Player remove mines.
 		if (minesData[DEATH_REMOVE])
 		{
@@ -2182,25 +2063,14 @@ stock mines_buy_mine(id, iMinesId)
 		return PLUGIN_CONTINUE;
 	static plData[PLAYER_DATA];
 	static minesData[COMMON_MINES_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-#endif
+	ArrayGetData(gMinesParameter, iMinesId, minesData, sizeof(minesData));
+
 	new cost = minesData[BUY_PRICE];
 	cs_set_user_money(id, cs_get_user_money(id) - cost);
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArrayGetArray(gPlayerData[id], iMinesId, plData);
-#endif
+	ArrayGetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
 	plData[PL_COUNT_HAVE_MINE]++;
-#if AMXX_VERSION_NUM > 182
-	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArraySetArray(gPlayerData[id], iMinesId, plData);
-#endif
+	ArraySetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
 
 	print_info(id, L_BOUGHT);
 
@@ -2219,11 +2089,8 @@ stock mines_remove_all_entity_main(id, iMinesId)
 	static plData[PLAYER_DATA];
 	static sClassName[MAX_CLASS_LENGTH];
 	new result = false;
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArrayGetArray(gPlayerData[id], iMinesId, plData);
-#endif
+
+	ArrayGetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
 
 	if (plData[PL_COUNT_DEPLOYED] > int:0)
 		result = true;
@@ -2233,11 +2100,8 @@ stock mines_remove_all_entity_main(id, iMinesId)
 
 	// reset deploy count.
 	plData[PL_COUNT_DEPLOYED] = int:0;
-#if AMXX_VERSION_NUM > 182
-	ArraySetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArraySetArray(gPlayerData[id], iMinesId, plData);
-#endif
+	ArraySetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
+	
 	return result;
 }
 
@@ -2248,13 +2112,9 @@ stock bool:CheckBuyMines(id, iMinesId)
 {
 	static minesData[COMMON_MINES_DATA];
 	static plData[PLAYER_DATA];
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gMinesParameter, iMinesId, minesData, sizeof(minesData));
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArrayGetArray(gMinesParameter, iMinesId, minesData);
-	ArrayGetArray(gPlayerData[id], iMinesId, plData);
-#endif
+
+	ArrayGetData(gMinesParameter, iMinesId, minesData,	sizeof(minesData));
+	ArrayGetData(gPlayerData[id], iMinesId, plData,		sizeof(plData));
 
 	// Check common.
 	if (!CheckCommon(id, plData))
@@ -2338,11 +2198,7 @@ stock bool:CheckMaxDeploy(id, iMinesId, plData[PLAYER_DATA], minesData[COMMON_MI
 	new team_max 	= minesData[DEPLOY_TEAM_MAX];
 	new team_count 	= mines_get_team_deployed_count(id, iMinesId, plData);
 
-#if AMXX_VERSION_NUM > 182
-	ArrayGetArray(gPlayerData[id], iMinesId, plData, sizeof(plData));
-#else
-	ArrayGetArray(gPlayerData[id], iMinesId, plData);
-#endif
+	ArrayGetData(gPlayerData[id], iMinesId, plData, sizeof(plData));
 	// Max deployed per player.
 	if (plData[PL_COUNT_DEPLOYED] >= int:max_have)
 	{

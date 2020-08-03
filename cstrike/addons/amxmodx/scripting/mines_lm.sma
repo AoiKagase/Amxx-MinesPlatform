@@ -817,7 +817,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 
 	for (new n = 0; n < ArraySize(aTarget); n++)
 	{
-		ArrayGetArray(aTarget, n, hPlayer);
+		ArrayGetData(aTarget, n, hPlayer, sizeof(hPlayer));
 
 		if(gCvarValue[VL_REALISTIC_DETAIL]) 
 			mines_spark_wall(hPlayer[V_POSITION]);
