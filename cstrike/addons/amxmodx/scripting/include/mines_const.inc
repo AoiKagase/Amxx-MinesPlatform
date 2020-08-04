@@ -34,20 +34,18 @@
 
 #define PLAYER_IN_BUYZONE			(1<<0)
 // CS Status Data.
-#define mines_get_user_team(%1)			CsTeams:get_offset_value(%1, OFFSET_TEAM)
-#define mines_set_user_team(%1,%2)		set_offset_value(%1, OFFSET_TEAM, %2)
-#define mines_get_user_deaths(%1)		get_offset_value(%1, OFFSET_GET_DEATH)
-#define mines_set_user_deaths(%1,%2)	set_offset_value(%1, OFFSET_SET_DEATH, %2)
-#define mines_get_user_money(%1)		get_offset_value(%1, OFFSET_MONEY)
-#define mines_set_user_money(%1,%2)		set_offset_value(%1, OFFSET_MONEY, %2)
-#define mines_set_user_lasthit(%1,%2)	set_pdata_int(%1, OFFSET_LAST_HIT_GROUP, %2, EXTRAOFFSET_PL_LINUX)
+// CS Status Data.
+#define mines_get_user_deaths(%1)		get_ent_data(%1, "CbasePlayer",	"m_iDeaths")
+#define mines_set_user_deaths(%1,%2)	set_ent_data(%1, "CbasePlayer",	"m_iDeaths", %2)
+#define mines_set_user_lasthit(%1,%2)	set_ent_data(%1, "CBaseMonster","m_LastHitGroup", %2)
+
 #define mines_get_health(%1,%2)			pev(%1, pev_health, %2)
+#define mines_set_health(%1,%2)			set_pev(%1, pev_health, %2)
 #define mines_get_user_max_speed(%1,%2)	pev(%1,pev_maxspeed,%2)
 #define mines_get_user_frags(%1)		pev(%1,pev_frags)
-#define mines_get_user_buyzone(%1)		(get_pdata_int(%1,OFFSET_MAPZONE) & PLAYER_IN_BUYZONE)
 #define mines_set_user_frags(%1,%2)		set_pev(%1,pev_frags,%2)
 #define mines_set_user_max_speed(%1,%2)	engfunc(EngFunc_SetClientMaxspeed,%1,%2);set_pev(%1, pev_maxspeed,%2)
-#define mines_set_user_health(%1,%2)	((health > 0) ? set_pev(id, pev_health, health) : user_kill(id, 1))
+
 #define IsPlayer(%1) ( 1 <= %1 <= 32 ) 
 
 // Lasermine Data Save Area.

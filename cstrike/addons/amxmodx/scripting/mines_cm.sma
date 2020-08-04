@@ -434,7 +434,7 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	set_pev(iEnt, pev_dmg, 100.0);
 
 	// set entity health.
-	set_pev(iEnt, pev_health, gMinesData[MINE_HEALTH]);
+	mines_set_health(iEnt, gMinesData[MINE_HEALTH]);
 
 	// set mine position
 	set_mine_position(uID, iEnt);
@@ -777,11 +777,11 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	}
 
 	// Get mine health.
-	static Float:iHealth;
-	pev(iEnt, pev_health, iHealth);
+	static Float:fHealth;
+	mines_get_health(iEnt, fHealth)
 
 	// break?
-	if (iHealth <= 0 || (pev(iEnt, pev_flags) & FL_KILLME))
+	if (fHealth <= 0.0 || (pev(iEnt, pev_flags) & FL_KILLME))
 	{
 		// next step explosion.
 		set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);

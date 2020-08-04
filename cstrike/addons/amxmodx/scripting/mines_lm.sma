@@ -472,7 +472,7 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 #else
 	health = gCvarValue[VL_MINE_HEALTH];
 #endif
-	set_pev(iEnt, pev_health, health);
+	mines_set_health(iEnt, health);
 
 	// set mine position
 	set_mine_position(uID, iEnt);
@@ -609,7 +609,7 @@ public MinesPickup(id, target)
 {
 	// Recycle Health.
 	new Float:health;
-	pev(target, pev_health, health);
+	mines_get_health(target, health);
 	PushStackCell(gRecycleMine[id], health);
 }
 #endif

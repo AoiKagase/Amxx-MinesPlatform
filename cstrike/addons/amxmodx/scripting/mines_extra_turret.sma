@@ -381,7 +381,7 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	set_pev(iEnt, pev_dmg, 100.0);
 
 	// set entity health.
-	set_pev(iEnt, pev_health, gMinesData[MINE_HEALTH]);
+	mines_set_health(iEnt, gMinesData[MINE_HEALTH]);
 
 	// set mine position
 	set_mine_position(uID, iEnt);
