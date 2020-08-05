@@ -200,5 +200,5 @@ stock get_cvar_to_vector(const args[13], Float:vector[3])
 //====================================================
 stock CsTeams:mines_get_owner_team(iEnt)
 {
-	return mines_get_user_team(pev(iEnt, MINES_OWNER));
+	return cs_get_user_team(pev(iEnt, MINES_OWNER));
 }

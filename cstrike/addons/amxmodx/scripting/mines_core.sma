@@ -1717,29 +1717,24 @@ public mines_show_menu_sub(id, iMinesId)
 	ArrayGetArray(gMinesParameter, iMinesId, minesData);
 
 	menu_additem(menu, fmt("%L", id, LANG[L_MENU_SELECT], 	sItemName), sMinesId, 0, gSubMenuCallback);
-#if defined ZP_SUPPORT
-	#if AMXX_VERSION_NUM > 182
-	menu_addblank2(menu);
-	#else
-	menu_addblank(menu);
-	#endif
-#else
+#if !defined ZP_SUPPORT
 	menu_additem(menu, fmt("%L", id, LANG[L_MENU_BUY], 		sItemName,	minesData[BUY_PRICE]), sMinesId, 0, gSubMenuCallback);
 #endif
-#if AMXX_VERSION_NUM > 182
-	menu_addblank2(menu);
-#else
-	menu_addblank(menu);
-#endif
+	menu_blank(menu);
 	menu_additem(menu, fmt("%L", id, LANG[L_MENU_DEPLOY], 	sItemName), sMinesId);
 	menu_additem(menu, fmt("%L", id, LANG[L_MENU_PICKUP], 	sItemName), sMinesId);
+	menu_blank(menu);
+	menu_additem(menu, fmt("%L", id, LANG[L_MENU_EXPLOSION],sItemName), sMinesId);
+	menu_display(id, menu, 0);
+}
+
+menu_blank(menu)
+{
 #if AMXX_VERSION_NUM > 182
 	menu_addblank2(menu);
 #else
 	menu_addblank(menu);
 #endif
-	menu_additem(menu, fmt("%L", id, LANG[L_MENU_EXPLOSION], 	sItemName), sMinesId);
-	menu_display(id, menu, 0);
 }
 
 //====================================================
@@ -1992,7 +1987,7 @@ stock int:mines_get_team_deployed_count(id, iMinesId, plData[PLAYER_DATA])
 	new players[MAX_PLAYERS];
 
 	// Witch your team?
-	switch(CsTeams:mines_get_user_team(id))
+	switch(CsTeams:cs_get_user_team(id))
 	{
 		case CS_TEAM_CT: team = "CT";
 		case CS_TEAM_T : team = "T";
