@@ -12,35 +12,6 @@
 #include <mines_const>
 #include <xs>
 
-//====================================================
-// Gets offset data
-//====================================================
-stock get_offset_value(id, type)
-{
-#if defined UL_MONEY_SUPPORT
-	if (type == OFFSET_MONEY)
-	{
-			return cs_get_user_money_ul(id);
-	}
-#endif
-	return get_pdata_int(id, type);	
-}
-
-//====================================================
-// Sets offset data
-//====================================================
-stock set_offset_value(id, type, value)
-{
-#if defined UL_MONEY_SUPPORT
-	if (type == OFFSET_MONEY)
-	{
-		return cs_set_user_money_ul(id, value);
-	}
-#endif
-	set_pdata_int(id, type, value);	
-	return;
-}
-
 // Spark Effect.
 stock mines_spark_wall				(Float:vEndOrigin[])
 {
@@ -185,7 +156,6 @@ stock mines_glow(iEnt, const minesData[COMMON_MINES_DATA])
 		set_pev(iEnt, pev_rendermode, 	kRenderNormal);
 		set_pev(iEnt, pev_renderamt, 	float(5));
 	}
-	return PLUGIN_CONTINUE;
 }
 
 stock get_cvar_to_vector(const args[13], Float:vector[3])

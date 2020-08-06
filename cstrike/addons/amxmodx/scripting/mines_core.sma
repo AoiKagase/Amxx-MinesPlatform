@@ -299,9 +299,7 @@ public plugin_init()
 
 	// Add your code here...
 	register_clcmd("+mdeploy",  "mines_cmd_progress_deploy");
-	register_clcmd("+mpickup",  "mines_cmd_progress_pickup");
    	register_clcmd("-mdeploy",  "mines_cmd_progress_stop");
-   	register_clcmd("-mpickup",  "mines_cmd_progress_stop");
 	register_clcmd("say", 		"say_mines");
 
 	// CVar settings.
@@ -453,11 +451,8 @@ public _native_register_mines(iPlugin, iParams)
 	ArrayPushString (gMinesModels, 		minesModel);
 	// initialize player data.
 	for(new i = 0; i < MAX_PLAYERS; i++)
-#if AMXX_VERSION_NUM > 182
-		ArrayPushArray(gPlayerData[i], plData, sizeof(plData));
-#else
 		ArrayPushArray(gPlayerData[i], plData);
-#endif
+
 	return iMinesId;
 }
 public _native_register_mines_data(iPlugin, iParams)
@@ -801,11 +796,8 @@ public mines_progress_deploy(id, iMinesId)
 	new sMineId[4];
 	num_to_str(iMinesId, sMineId, charsmax(sMineId));
 	// Start Task. Put mines.
-#if AMXX_VERSION_NUM > 182
-	set_task_ex(wait, "SpawnMine", (TASK_PLANT + id), sMineId, charsmax(sMineId));
-#else
-	set_task(wait, "SpawnMine", (TASK_PLANT + id), sMineId);
-#endif
+	set_task(wait, "SpawnMine", (TASK_PLANT + id), sMineId, charsmax(sMineId));
+
 	return PLUGIN_HANDLED;
 }
 
@@ -831,11 +823,8 @@ public mines_progress_pickup(id, iMinesId)
 	new sMineId[4];
 	num_to_str(iMinesId, sMineId, charsmax(sMineId));
 	// Start Task. Remove mines.
-#if AMXX_VERSION_NUM > 182
-	set_task_ex(wait, "RemoveMine", (TASK_RELEASE + id), sMineId, charsmax(sMineId));
-#else
-	set_task(wait, "RemoveMine", (TASK_RELEASE + id), sMineId);
-#endif
+	set_task(wait, "RemoveMine", (TASK_RELEASE + id), sMineId, charsmax(sMineId));
+
 	return PLUGIN_HANDLED;
 }
 
@@ -910,13 +899,9 @@ public RemoveMine(params[], id)
 	// Task Number to uID.
 	new uID = id - TASK_RELEASE;
 
-#if AMXX_VERSION_NUM > 182
-	// Get target entity.
-	get_user_aiming(uID, target);
-#else
 	new body;
 	get_user_aiming(uID, target, body);
-#endif
+
 	// is valid target?
 	if(!pev_valid(target))
 		return;
@@ -1213,14 +1198,9 @@ public PlayerCmdStart(id, handle, random_seed)
 	{
 		if (!iInOldButton)
 		{
-			mines_cmd_progress_pickup(id);
+			mines_show_menu(id, 0);
 			return FMRES_HANDLED;
 		}
-	}
-	else
-	{
-		if (iInOldButton)
-			mines_cmd_progress_stop(id);
 	}
 
 	switch (mines_get_user_deploy_state(id))
@@ -1490,12 +1470,9 @@ public bool:CheckPickup(id, iMinesId)
 	new Float:vOrigin[3];
 	new Float:tOrigin[3];
 
-#if AMXX_VERSION_NUM > 182
-	get_user_aiming(id, target);
-#else
 	new body;
 	get_user_aiming(id, target, body);
-#endif
+
 	// is valid target entity?
 	if(!pev_valid(target))
 		return false;

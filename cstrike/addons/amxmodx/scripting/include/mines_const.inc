@@ -20,20 +20,6 @@
 #define CHAT_TAG 					"[M.P]"
 #define ENT_CLASS_BREAKABLE			"func_breakable"
 
-#define OFFSET_TEAM 				114
-#define OFFSET_MONEY				115
-#if cellbits == 32
-	#define OFFSET_MAPZONE  		235
-#else
-	#define OFFSET_MAPZONE  		268
-#endif
-#define OFFSET_GET_DEATH			444
-#define OFFSET_SET_DEATH			711
-#define OFFSET_LAST_HIT_GROUP		75
-#define EXTRAOFFSET_PL_LINUX		5
-
-#define PLAYER_IN_BUYZONE			(1<<0)
-// CS Status Data.
 // CS Status Data.
 #define mines_get_user_deaths(%1)		get_ent_data(%1, "CbasePlayer",	"m_iDeaths")
 #define mines_set_user_deaths(%1,%2)	set_ent_data(%1, "CbasePlayer",	"m_iDeaths", %2)
@@ -41,9 +27,9 @@
 
 #define mines_get_health(%1,%2)			pev(%1, pev_health, %2)
 #define mines_set_health(%1,%2)			set_pev(%1, pev_health, %2)
-#define mines_get_user_max_speed(%1,%2)	pev(%1,pev_maxspeed,%2)
 #define mines_get_user_frags(%1)		pev(%1,pev_frags)
 #define mines_set_user_frags(%1,%2)		set_pev(%1,pev_frags,%2)
+#define mines_get_user_max_speed(%1,%2)	pev(%1,pev_maxspeed,%2)
 #define mines_set_user_max_speed(%1,%2)	engfunc(EngFunc_SetClientMaxspeed,%1,%2);set_pev(%1, pev_maxspeed,%2)
 
 #define IsPlayer(%1) ( 1 <= %1 <= 32 ) 
