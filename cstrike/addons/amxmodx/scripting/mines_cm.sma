@@ -82,6 +82,7 @@ enum _:CVAR_SETTING
 	CVAR_MINE_GLOW_TR    	,   	// Glowing color for T.
 	CVAR_MINE_BROKEN		,		// Can Broken Mines. 0 = Mine, 1 = Team, 2 = Enemy.
 	CVAR_MINE_OFFSET_ANGLE	,		// MODEL OFFSET ANGLE
+	CVAR_MINE_OFFSET_POS	,		// MODEL OFFSET POSITION
 	CVAR_DEATH_REMOVE		,		// Dead Player Remove Claymore.
 	CVAR_CM_ACTIVATE		,		// Waiting for put claymore. (0 = no progress bar.)
 	CVAR_ALLOW_PICKUP		,		// allow pickup.
@@ -139,7 +140,8 @@ enum _:CVAR_VALUE
 	VALUE_CM_RIGHT_YAW		[20],		// Claymore Wire Area Right Yaw.
 	VALUE_CM_WIRE_COLOR_T	[13],
 	VALUE_CM_WIRE_COLOR_CT	[13],
-	VALUE_MINE_OFFSET_ANGLE	[13],		// MODEL OFFSET ANGLE
+	VALUE_MINE_OFFSET_ANGLE	[20],		// MODEL OFFSET ANGLE
+	VALUE_MINE_OFFSET_POS	[20],		// MODEL OFFSET POSITION
 };
 
 //====================================================
@@ -162,7 +164,7 @@ new const gEntModel	[]	= ENT_MODELS;
 new const gEntSprite[]	= ENT_SPRITE1;
 new const gEntSound	[][]={ENT_SOUND1, ENT_SOUND2};
 
-new Float:gModelMargin[] = {0.0, -0.0, 4.0};
+new Float:gModelMargin[] = {0.0, 0.0, -2.0};
 new const gWireLoop = 3;
 
 //====================================================
@@ -217,6 +219,7 @@ public plugin_init()
 	gCvar[CVAR_CM_WIRE_COLOR_T] 	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_t"),			"255,255,255"	);	// Team-Color for Terrorist. default:red (R,G,B)
 	gCvar[CVAR_CM_WIRE_COLOR_CT]	= create_cvar(fmt("%s%s", CVAR_TAG, "_wire_color_ct"),			"255,255,255"	);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 	gCvar[CVAR_MINE_OFFSET_ANGLE] 	= create_cvar(fmt("%s%s", CVAR_TAG, "_offset_angle"), 			"-90,0,0"		);
+	gCvar[CVAR_MINE_OFFSET_POS] 	= create_cvar(fmt("%s%s", CVAR_TAG, "_offset_position"), 		"0,0,-512"		);
 	create_cvar("mines_claymore", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
 	gMinesId 					= register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
@@ -301,6 +304,7 @@ public hook_cvars(pcvar, const old_value[], const new_value[])
 				case CVAR_CM_WIRE_COLOR_T	: copy(gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T]) - 1, new_value);// last comma - 1
 				case CVAR_CM_WIRE_COLOR_CT	: copy(gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1, new_value);// last comma - 1
 				case CVAR_MINE_OFFSET_ANGLE	: copy(gCvarValue[VALUE_MINE_OFFSET_ANGLE], charsmax(gCvarValue[VALUE_MINE_OFFSET_ANGLE])-1, new_value);// last comma - 1
+				case CVAR_MINE_OFFSET_POS	: copy(gCvarValue[VALUE_MINE_OFFSET_POS], 	charsmax(gCvarValue[VALUE_MINE_OFFSET_POS])	 -1, new_value);// last comma - 1
 			}
 			break;
 		}
@@ -339,17 +343,18 @@ bind_cvars()
 	bind_pcvar_float	(gCvar[CVAR_CM_WIRE_RANGE],		gCvarValue[VALUE_CM_WIRE_RANGE]);
 
 	bind_pcvar_string	(gCvar[CVAR_CBT], 				gCvarValue[VALUE_CBT], 				charsmax(gCvarValue[VALUE_CBT]));
-	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_TR],		gCvarValue[VALUE_MINE_GLOW_TR],		charsmax(gCvarValue[VALUE_MINE_GLOW_TR]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_CT],		gCvarValue[VALUE_MINE_GLOW_CT],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_PITCH],	gCvarValue[VALUE_CM_CENTER_PITCH],	charsmax(gCvarValue[VALUE_CM_CENTER_PITCH]) - 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_YAW],		gCvarValue[VALUE_CM_CENTER_YAW],	charsmax(gCvarValue[VALUE_CM_CENTER_YAW]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_PITCH],		gCvarValue[VALUE_CM_LEFT_PITCH],	charsmax(gCvarValue[VALUE_CM_LEFT_PITCH]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_YAW],		gCvarValue[VALUE_CM_LEFT_YAW],		charsmax(gCvarValue[VALUE_CM_LEFT_YAW]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_PITCH],	gCvarValue[VALUE_CM_RIGHT_PITCH],	charsmax(gCvarValue[VALUE_CM_RIGHT_PITCH]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_YAW],		gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_CM_RIGHT_YAW]) 	- 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_T],	gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T]) - 1);// last comma - 1
-	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_CT],	gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT])- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_TR],		gCvarValue[VALUE_MINE_GLOW_TR],		charsmax(gCvarValue[VALUE_MINE_GLOW_TR]) 	 - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_MINE_GLOW_CT],		gCvarValue[VALUE_MINE_GLOW_CT],		charsmax(gCvarValue[VALUE_MINE_GLOW_CT]) 	 - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_PITCH],	gCvarValue[VALUE_CM_CENTER_PITCH],	charsmax(gCvarValue[VALUE_CM_CENTER_PITCH])  - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_CENTER_YAW],		gCvarValue[VALUE_CM_CENTER_YAW],	charsmax(gCvarValue[VALUE_CM_CENTER_YAW]) 	 - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_PITCH],		gCvarValue[VALUE_CM_LEFT_PITCH],	charsmax(gCvarValue[VALUE_CM_LEFT_PITCH]) 	 - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_LEFT_YAW],		gCvarValue[VALUE_CM_LEFT_YAW],		charsmax(gCvarValue[VALUE_CM_LEFT_YAW]) 	 - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_PITCH],	gCvarValue[VALUE_CM_RIGHT_PITCH],	charsmax(gCvarValue[VALUE_CM_RIGHT_PITCH]) 	 - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_RIGHT_YAW],		gCvarValue[VALUE_CM_RIGHT_YAW],		charsmax(gCvarValue[VALUE_CM_RIGHT_YAW]) 	 - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_T],	gCvarValue[VALUE_CM_WIRE_COLOR_T],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_T])  - 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_CM_WIRE_COLOR_CT],	gCvarValue[VALUE_CM_WIRE_COLOR_CT],	charsmax(gCvarValue[VALUE_CM_WIRE_COLOR_CT]) - 1);// last comma - 1
 	bind_pcvar_string	(gCvar[CVAR_MINE_OFFSET_ANGLE],	gCvarValue[VALUE_MINE_OFFSET_ANGLE],charsmax(gCvarValue[VALUE_MINE_OFFSET_ANGLE])- 1);// last comma - 1
+	bind_pcvar_string	(gCvar[CVAR_MINE_OFFSET_POS],	gCvarValue[VALUE_MINE_OFFSET_POS],	charsmax(gCvarValue[VALUE_MINE_OFFSET_POS])	 - 1);// last comma - 1
 
 	update_mines_parameter();
 }
@@ -380,11 +385,6 @@ update_mines_parameter()
 	gMinesData[GLOW_COLOR_TR]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_TR]);
 	gMinesData[GLOW_COLOR_CT]	=	get_cvar_to_color(gCvarValue[VALUE_MINE_GLOW_CT]);
 
-	new offsetAngle[13], Float:fOffsetAngle[3];
-	copy(offsetAngle, sizeof(offsetAngle), gCvarValue[VALUE_MINE_OFFSET_ANGLE]);
-	get_cvar_to_vector(offsetAngle, fOffsetAngle);
-	gMinesData[DEPLOY_OFFSET_ANGLE] = fOffsetAngle;
-
 	register_mines_data(gMinesId, gMinesData, gEntModel);
 }
 
@@ -407,19 +407,19 @@ public plugin_precache()
 //====================================================
 public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 {
-	if (iMinesId != gMinesId) return;
+	if (iMinesId != gMinesId) return 0;
 	// Entity Setting.
 	// set class name.
-	set_pev(iEnt, pev_classname, gEntName);
+	set_pev(iEnt, pev_classname, 	gEntName);
 
 	// set models.
-	engfunc(EngFunc_SetModel, iEnt, gEntModel);
+	engfunc(EngFunc_SetModel, 		iEnt, gEntModel);
 
 	// set solid.
-	set_pev(iEnt, pev_solid, SOLID_NOT);
+	set_pev(iEnt, pev_solid, 		SOLID_NOT);
 
 	// set movetype.
-	set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
+	set_pev(iEnt, pev_movetype, 	MOVETYPE_FLY);
 
 	// set model animation.
 	set_pev(iEnt, pev_frame,		0);
@@ -430,46 +430,58 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
 
 	// set take damage.
-	set_pev(iEnt, pev_takedamage, DAMAGE_YES);
-	set_pev(iEnt, pev_dmg, 100.0);
+	set_pev(iEnt, pev_takedamage, 	DAMAGE_YES);
+	set_pev(iEnt, pev_dmg, 			100.0);
+
+	// set size.
+	engfunc(EngFunc_SetSize, 		iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
 
 	// set entity health.
-	mines_set_health(iEnt, gMinesData[MINE_HEALTH]);
-
-	// set mine position
-	set_mine_position(uID, iEnt);
+	mines_set_health(iEnt, 			gMinesData[MINE_HEALTH]);
 
 	// Save results to be used later.
-	set_pev(iEnt, MINES_OWNER, uID );
+	set_pev(iEnt, MINES_OWNER, 		uID );
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
 	set_pev(iEnt, CLAYMORE_POWERUP, fCurrTime + 2.5 );
-	set_pev(iEnt, MINES_STEP, POWERUP_THINK);
+	set_pev(iEnt, MINES_STEP, 		POWERUP_THINK);
 
 	// think rate. hmmm....
-	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
+	set_pev(iEnt, pev_nextthink, 	fCurrTime + 0.2 );
 
 	// Power up sound.
 	cm_play_sound(iEnt, SOUND_POWERUP);
+
+	new Float:vNewOrigin[3];
+	pev(iEnt, pev_origin, vNewOrigin);
+
+	// set laserbeam end point position.
+	set_claymore_endpoint(iEnt, vNewOrigin);
+
+	return 1;
 }
 
-//====================================================
-// Set claymore Position.
-//====================================================
-set_mine_position(uID, iEnt)
+public mines_entity_set_position(iEnt, uID, iMinesId)
 {
+	if (iMinesId != gMinesId) return 0;
+
 	// Vector settings.
-	new Float:vOrigin[3];
-	new	Float:vNewOrigin[3],Float:vNormal[3],
-		Float:vTraceEnd[3],Float:vEntAngles[3];
+	new Float:vOrigin	[3],Float:vViewOfs	[3];
+	new	Float:vNewOrigin[3],Float:vNormal	[3],
+		Float:vTraceEnd	[3],Float:vEntAngles[3];
 	new Float:vDecals	[3];
+	new iReturn = 0;
 
 	// get user position.
 	pev(uID, pev_origin, vOrigin);
+	pev(uID, pev_view_ofs, vViewOfs);
+
 	velocity_by_aim(uID, 128, vTraceEnd);
-	vTraceEnd[2] = -128.0;
-	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd );
+	vTraceEnd[2] = -512.0;
+
+	xs_vec_add(vOrigin, vViewOfs, vOrigin);
+	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -477,43 +489,49 @@ set_mine_position(uID, iEnt)
 	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, uID, trace);
 	{
 		new Float:fFraction;
-		get_tr2( trace, TR_flFraction, fFraction );
+		get_tr2(trace, TR_flFraction, fFraction);
 			
 		// -- We hit something!
-		if ( fFraction < 1.0 )
+		if (fFraction < 1.0)
 		{
 			// -- Save results to be used later.
-			get_tr2( trace, TR_vecEndPos, vTraceEnd );
-			get_tr2( trace, TR_vecPlaneNormal, vNormal );
+			get_tr2(trace, TR_vecEndPos, 		vTraceEnd);
+			get_tr2(trace, TR_vecPlaneNormal, 	vNormal);
+
+			if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
+			{
+				// calc Decal position.
+				xs_vec_add(vTraceEnd, vNormal, vDecals);
+
+				// Claymore user Angles.
+				new Float:pAngles[3];
+				pev(uID, pev_angles, pAngles);
+
+				// Rotate tripmine.
+				vector_to_angle(vNormal, vEntAngles);
+				vEntAngles[0] = 0.0;
+				vEntAngles[1] = pAngles[1];
+				vEntAngles[2] = 0.0;
+
+				// calc origin.
+				xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+				xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
+
+				// set entity position.
+				engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
+
+				// set angle.
+				set_pev(iEnt, pev_angles, vEntAngles);
+				xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
+				set_pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vNewOrigin);
+				iReturn = 1;
+			}
 		}
 	}
+
     // free the trace handle.
 	free_tr2(trace);
-
-	xs_vec_add( vTraceEnd, vNormal, vDecals);
-	xs_vec_mul_scalar( vNormal, 8.0, vNormal );
-	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
-
-	// set size.
-	engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
-	// set entity position.
-	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
-	// Claymore user Angles.
-	new Float:pAngles[3];
-	pev(uID, pev_angles, pAngles);
-	xs_vec_add(pAngles, gMinesData[DEPLOY_OFFSET_ANGLE], pAngles);
-
-	// Rotate tripmine.
-	vector_to_angle(vNormal, vEntAngles);
-	xs_vec_add(vEntAngles, pAngles, vEntAngles); 
-
-	// set angle.
-	set_pev(iEnt, pev_angles, vEntAngles);
-	xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
-	set_pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vNewOrigin);
-
-	// set laserbeam end point position.
-	set_claymore_endpoint(iEnt, vNewOrigin);
+	return iReturn;
 }
 
 Float:get_claymore_wire_endpoint(cvar)
@@ -613,9 +631,9 @@ stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 					{
 						if (distance > xs_vec_distance(vOrigin, hitPoint))
 							hitPoint = vTmp;
-						n++;
 					}
 				}
+				n++;
 			}
 			// free the trace handle.
 			free_tr2(trace);
@@ -922,64 +940,4 @@ public mines_remove_entity(iEnt)
 		wire = pev(iEnt, CLAYMORE_WIRE[i]);
 		engfunc(EngFunc_RemoveEntity, wire);
 	}
-}
-
-public mines_deploy_hologram(id, iEnt, iMinesId)
-{
-	if (iMinesId != gMinesId)
-		return 0;
-
-	// Vector settings.
-	static	Float:vOrigin[3];
-	static	Float:vNewOrigin[3],Float:vNormal[3],
-			Float:vTraceEnd[3],Float:vEntAngles[3];
-
-	// Get wall position.
-	velocity_by_aim(id, 128, vTraceEnd);
-	vTraceEnd[2] = -128.0;
-
-	// get user position.
-	pev(id, pev_origin, vOrigin);
-	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
-
-	// create the trace handle.
-	static trace;
-	static result;
-	result = 0;
-	trace = create_tr2();
-
-	// get wall position to vNewOrigin.
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
-	{
-		// -- We hit something!
-		// -- Save results to be used later.
-		get_tr2(trace, TR_vecEndPos, vTraceEnd);
-		get_tr2(trace, TR_vecPlaneNormal, vNormal);
-
-		if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
-		{
-			xs_vec_mul_scalar(vNormal, 8.0, vNormal);
-			xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
-			// set entity position.
-			engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
-			// Claymore user Angles.
-			new Float:pAngles[3];
-			pev(id, pev_angles, pAngles);
-			pAngles[0]   = -90.0;
-			// Rotate tripmine.
-			vector_to_angle(vNormal, vEntAngles);
-			xs_vec_add(vEntAngles, pAngles, vEntAngles); 
-			// set angle.
-			set_pev(iEnt, pev_angles, vEntAngles);
-			result = 1;
-		}
-		else
-		{
-			result = 0;
-		}
-	}
-	// free the trace handle.
-	free_tr2(trace);
-
-	return result;
 }

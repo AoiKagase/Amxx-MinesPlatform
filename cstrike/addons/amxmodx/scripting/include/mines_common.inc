@@ -158,7 +158,7 @@ stock mines_glow(iEnt, const minesData[COMMON_MINES_DATA])
 	}
 }
 
-stock get_cvar_to_vector(const args[13], Float:vector[3])
+stock get_cvar_to_vector(const args[], Float:vector[3])
 {
 	new values[3];
 	get_cvar_to_array(args, values, 3);

@@ -385,110 +385,125 @@ public plugin_precache()
 //====================================================
 public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 {
-	if (iMinesId != gMinesId) return;
+	if (iMinesId != gMinesId) 
+		return 0;
+
 	// Entity Setting.
 	// set class name.
-	set_pev(iEnt, pev_classname, ENT_CLASS_TRIP);
+	set_pev(iEnt, pev_classname, 			ENT_CLASS_TRIP);
 
 	// set models.
-	engfunc(EngFunc_SetModel, iEnt, ENT_MODELS);
+	engfunc(EngFunc_SetModel, 				iEnt, ENT_MODELS);
 
 	// set solid.
-	set_pev(iEnt, pev_solid, SOLID_NOT);
+	set_pev(iEnt, pev_solid, 				SOLID_NOT);
 
 	// set movetype.
-	set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
+	set_pev(iEnt, pev_movetype, 			MOVETYPE_FLY);
 
 	// set model animation.
-	set_pev(iEnt, pev_frame,		0);
-	set_pev(iEnt, pev_body, 		3);
-	set_pev(iEnt, pev_sequence, 	TRIPMINE_WORLD);
-	set_pev(iEnt, pev_framerate,	0);
-	set_pev(iEnt, pev_rendermode,	kRenderNormal);
-	set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
+	set_pev(iEnt, pev_frame,				0);
+	set_pev(iEnt, pev_body, 				3);
+	set_pev(iEnt, pev_sequence, 			TRIPMINE_WORLD);
+	set_pev(iEnt, pev_framerate,			0);
+	set_pev(iEnt, pev_rendermode,			kRenderNormal);
+	set_pev(iEnt, pev_renderfx,	 			kRenderFxNone);
 
 	// set take damage.
-	set_pev(iEnt, pev_takedamage, DAMAGE_YES);
-	set_pev(iEnt, pev_dmg, 100.0);
+	set_pev(iEnt, pev_takedamage, 			DAMAGE_YES);
+	set_pev(iEnt, pev_dmg, 					100.0);
+
+	// set size.
+	engfunc(EngFunc_SetSize, 				iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 });
 
 	// set entity health.
-	mines_set_health(iEnt, gCvarValue[VL_MINE_HEALTH]);
-
-	// set mine position
-	set_mine_position(uID, iEnt);
+	mines_set_health(iEnt, 					gCvarValue[VL_MINE_HEALTH]);
 
 	// Save results to be used later.
-	set_pev(iEnt, MINES_OWNER, uID );
+	set_pev(iEnt, MINES_OWNER, 				uID);
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
-	set_pev(iEnt, TRIPMINE_POWERUP, fCurrTime + 2.5 );   
-	set_pev(iEnt, MINES_STEP, POWERUP_THINK);
-	set_pev(iEnt, TRIPMINE_COUNT, fCurrTime);
-	set_pev(iEnt, TRIPMINE_BEAMTHINK, fCurrTime);
+
+	set_pev(iEnt, TRIPMINE_POWERUP, 		fCurrTime + 2.5 );   
+	set_pev(iEnt, MINES_STEP, 				POWERUP_THINK);
+	set_pev(iEnt, TRIPMINE_COUNT, 			fCurrTime);
+	set_pev(iEnt, TRIPMINE_BEAMTHINK, 		fCurrTime);
 
 	// think rate. hmmm....
-	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
+	set_pev(iEnt, pev_nextthink, 			fCurrTime + 0.2 );
 
 	// Power up sound.
 	tm_play_sound(iEnt, SOUND_POWERUP);
+
+	return 1;
 }
 
 //====================================================
 // Set Lasermine Position.
 //====================================================
-set_mine_position(uID, iEnt)
+public mines_entity_set_position(iEnt, uID, iMinesId)
 {
+	if (iMinesId != gMinesId) return 0;
+
+	new iReturn = 0;
 	// Vector settings.
 	new Float:vOrigin	[3],Float:vViewOfs	[3];
 	new	Float:vNewOrigin[3],Float:vNormal	[3];
 	new	Float:vTraceEnd	[3],Float:vEntAngles[3];
 	new Float:vDecals	[3];
 
-	// get user position.
-	pev(uID, pev_origin, vOrigin);
-	pev(uID, pev_view_ofs, vViewOfs);
-	xs_vec_add(vOrigin, vViewOfs, vOrigin);  	
+	pev(iEnt, pev_origin, 			vNewOrigin);
 
-	velocity_by_aim(uID, 128, vTraceEnd);
-	xs_vec_add( vTraceEnd, vOrigin, vTraceEnd );
+	// get user position.
+	pev(uID, pev_origin, 			vOrigin);
+	pev(uID, pev_view_ofs, 			vViewOfs);
+
+	velocity_by_aim(uID, 128, 		vTraceEnd);
+
+	xs_vec_add(vOrigin, 			vViewOfs, vOrigin);  	
+	xs_vec_add(vTraceEnd, 			vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
 	// get wall position to vNewOrigin.
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, uID, trace);
+	engfunc(EngFunc_TraceLine, 		vOrigin, vTraceEnd, IGNORE_MONSTERS, uID, trace);
 	{
 		new Float:fFraction;
-		get_tr2( trace, TR_flFraction, fFraction );
+		get_tr2(trace, 		TR_flFraction, 		fFraction);
 			
 		// -- We hit something!
-		if ( fFraction < 1.0 )
+		if (fFraction < 1.0)
 		{
 			// -- Save results to be used later.
-			get_tr2( trace, TR_vecEndPos, vTraceEnd );
-			get_tr2( trace, TR_vecPlaneNormal, vNormal );
+			get_tr2(trace, 	TR_vecEndPos, 		vTraceEnd);
+			get_tr2(trace, 	TR_vecPlaneNormal,	vNormal);
+	
+			if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
+			{
+				xs_vec_add(vTraceEnd, 			vNormal, vDecals);
+				xs_vec_mul_scalar(vNormal, 8.0, vNormal);
+				xs_vec_add(vTraceEnd, 			vNormal, vNewOrigin);
+
+				// set entity position.
+				engfunc(EngFunc_SetOrigin, 		iEnt, vNewOrigin);
+
+				// Rotate tripmine.
+				vector_to_angle(vNormal, 		vEntAngles);
+
+				// set angle.
+				set_pev(iEnt, pev_angles, 		vEntAngles);
+				// set laserbeam end point position.
+				set_laserend_postiion(iEnt, vNormal,	vNewOrigin);
+
+				iReturn = 1;
+			}
 		}
 	}
     // free the trace handle.
 	free_tr2(trace);
 
-	xs_vec_add( vTraceEnd, vNormal, vDecals);
-	xs_vec_mul_scalar( vNormal, 8.0, vNormal );
-	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
-
-	// set size.
-	engfunc(EngFunc_SetSize, iEnt, Float:{ -4.0, -4.0, -4.0 }, Float:{ 4.0, 4.0, 4.0 } );
-	// set entity position.
-	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
-
-	// Rotate tripmine.
-	vector_to_angle(vNormal, vEntAngles);
-
-	// set angle.
-	set_pev(iEnt, pev_angles, vEntAngles);
-
-	// set laserbeam end point position.
-	set_laserend_postiion(iEnt, vNormal, vNewOrigin);
+	return iReturn;
 }
 
 //====================================================
@@ -853,59 +868,4 @@ stock draw_laser(
 	write_byte(bright);							// Brightness.
 	write_byte(speed);							// speed
 	message_end();
-}
-
-public mines_deploy_hologram(id, iEnt, iMinesId)
-{
-	if (iMinesId != gMinesId)
-		return 0;
-
-	// Vector settings.
-	static	Float:vOrigin	[3],Float:vViewOfs	[3];
-	static	Float:vNewOrigin[3],Float:vNormal	[3];
-	static	Float:vTraceEnd	[3],Float:vEntAngles[3];
-
-	// Get wall position.
-	velocity_by_aim(id, 128, vTraceEnd);
-	// get user position.
-	pev(id, pev_origin, vOrigin);
-	pev(id, pev_view_ofs, vViewOfs);
-	xs_vec_add(vOrigin, vViewOfs, vOrigin);
-	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
-
-	// create the trace handle.
-	static trace;
-	static result;
-	result = 0;
-	trace = create_tr2();
-
-	// get wall position to vNewOrigin.
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
-	{
-		// -- We hit something!
-		// -- Save results to be used later.
-		get_tr2(trace, TR_vecEndPos, vTraceEnd);
-		get_tr2(trace, TR_vecPlaneNormal, vNormal);
-
-		if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
-		{
-			xs_vec_mul_scalar(vNormal, 8.0, vNormal);
-			xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
-			// set entity position.
-			engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
-			// Rotate tripmine.
-			vector_to_angle(vNormal, vEntAngles);
-			// set angle.
-			set_pev(iEnt, pev_angles, vEntAngles);
-			result = 1;
-		}
-		else
-		{
-			result = 0;
-		}
-	}
-	// free the trace handle.
-	free_tr2(trace);
-
-	return result;
 }

@@ -38,8 +38,9 @@ native mines_resources				(iMinesId, key[], value[], size, def[]);
 
 // Deployed Mines, Set Any Settings.
 forward mines_entity_spawn_settings	(iEnt, uID, iMinesId);
-// Deploying Cursor Set Position.
-forward mines_deploy_hologram		(id, iEnt, iMinesId);
+// Deployed Mines, Set Position Settings.
+forward mines_entity_set_position	(iEnt, uID, iMinesId);
+
 // client_putinserver
 forward mines_client_putinserver	(id);
 // client_disconnected
