@@ -55,9 +55,9 @@
 #define CLAYMORE_WIRE_STARTPOINT	pev_vuser4
 
 #define CLAYMORE_POWERUP			pev_fuser2
-#define CLAYMORE_WIREENDPOINT1		pev_vuser1
-#define CLAYMORE_WIREENDPOINT2		pev_vuser2
-#define CLAYMORE_WIREENDPOINT3		pev_vuser3
+#define CLAYMORE_WIREENDPOINT1		pev_vuser2
+#define CLAYMORE_WIREENDPOINT2		pev_vuser3
+#define CLAYMORE_WIREENDPOINT3		pev_vuser4
 //
 // CVAR SETTINGS
 //
@@ -462,6 +462,9 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	return 1;
 }
 
+//====================================================
+// Set Claymore Position.
+//====================================================
 public mines_entity_set_position(iEnt, uID, iMinesId)
 {
 	if (iMinesId != gMinesId) return 0;
@@ -474,14 +477,14 @@ public mines_entity_set_position(iEnt, uID, iMinesId)
 	new iReturn = 0;
 
 	// get user position.
-	pev(uID, pev_origin, vOrigin);
-	pev(uID, pev_view_ofs, vViewOfs);
+	pev(uID, pev_origin, 	vOrigin);
+	pev(uID, pev_view_ofs, 	vViewOfs);
 
 	velocity_by_aim(uID, 128, vTraceEnd);
 	vTraceEnd[2] = -512.0;
 
-	xs_vec_add(vOrigin, vViewOfs, vOrigin);
-	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
+	xs_vec_add(vOrigin, 	vViewOfs, vOrigin);
+	xs_vec_add(vTraceEnd, 	vOrigin, vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -505,7 +508,7 @@ public mines_entity_set_position(iEnt, uID, iMinesId)
 
 				// Claymore user Angles.
 				new Float:pAngles[3];
-				pev(uID, pev_angles, pAngles);
+				pev(uID, pev_angles, 	pAngles);
 
 				// Rotate tripmine.
 				vector_to_angle(vNormal, vEntAngles);
@@ -519,10 +522,12 @@ public mines_entity_set_position(iEnt, uID, iMinesId)
 
 				// set entity position.
 				engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
+				xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
 
 				// set angle.
-				set_pev(iEnt, pev_angles, vEntAngles);
-				xs_vec_add(vNewOrigin, gModelMargin, vNewOrigin);
+				set_pev(iEnt, pev_angles, 	vEntAngles);
+				set_pev(iEnt, MINES_DECALS, vDecals);
+
 				set_pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vNewOrigin);
 				iReturn = 1;
 			}

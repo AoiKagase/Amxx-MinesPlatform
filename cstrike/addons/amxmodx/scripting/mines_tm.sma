@@ -56,7 +56,7 @@
 #define TRIPMINE_COUNT				pev_fuser1
 #define TRIPMINE_POWERUP			pev_fuser2
 #define TRIPMINE_BEAMTHINK			pev_fuser3
-#define TRIPMINE_BEAMENDPOINT		pev_vuser1
+#define TRIPMINE_BEAMENDPOINT		pev_vuser2
 
 //
 // CVAR SETTINGS
@@ -493,6 +493,8 @@ public mines_entity_set_position(iEnt, uID, iMinesId)
 
 				// set angle.
 				set_pev(iEnt, pev_angles, 		vEntAngles);
+				set_pev(iEnt, MINES_DECALS, 	vDecals);
+
 				// set laserbeam end point position.
 				set_laserend_postiion(iEnt, vNormal,	vNewOrigin);
 

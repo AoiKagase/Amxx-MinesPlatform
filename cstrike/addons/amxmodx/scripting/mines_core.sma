@@ -121,7 +121,7 @@ new const LANG[L_KEY][] =
 	"MENU_DEPLOY"		,
 	"MENU_PICKUP"		,
 	"MENU_EXPLOSION"	,
-	"MENU_SELECTED"		,
+	"MENU_SELECTED"		
 };
 
 
@@ -205,7 +205,7 @@ new const ENT_SOUNDS[][]	=
 	"items/gunpickup2.wav"		,		// 0: PICKUP
 	"items/gunpickup4.wav"		,		// 1: PICKUP (BUTTON)
 	"debris/bustglass1.wav"		,		// 2: GLASS
-	"debris/bustglass2.wav"		,		// 3: GLASS
+	"debris/bustglass2.wav"				// 3: GLASS
 };
 
 new const ENT_SPRITES[][]	=
@@ -217,7 +217,7 @@ new const ENT_SPRITES[][]	=
 	"sprites/steam1.spr"		,		// 4: SMOKE
 	"sprites/bubble.spr"		,		// 5: BUBBLE
 	"sprites/blood.spr"			,		// 6: BLOOD SPLASH
-	"sprites/bloodspray.spr"	,		// 7: BLOOD SPRAY
+	"sprites/bloodspray.spr"			// 7: BLOOD SPRAY
 };
 
 // Client Print Command Macro.
@@ -990,12 +990,9 @@ public RemoveMine(params[], id)
 //====================================================
 public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 {
-	static sClassName[MAX_CLASS_LENGTH];
 	static minesData[COMMON_MINES_DATA];
 	static iMinesId;
-	pev(victim, pev_classname, sClassName, charsmax(sClassName));
-
-	iMinesId = ArrayFindString(gMinesClass, sClassName);
+	iMinesId = mines_get_minesId(victim);
 	if (iMinesId == -1)
 		return HAM_IGNORED;
 
@@ -1049,11 +1046,8 @@ public MinesThinkMain(iEnt)
 	if (!pev_valid(iEnt))
 		return HAM_IGNORED;
 
-	static sClassName[MAX_CLASS_LENGTH];
 	static iMinesId;
-	pev(iEnt, pev_classname, sClassName, charsmax(sClassName));
-	iMinesId = ArrayFindString(gMinesClass, sClassName);
-
+	iMinesId = mines_get_minesId(iEnt);
 	if (iMinesId != -1)
 	{
 		static iReturn;
@@ -1066,13 +1060,11 @@ public MinesThinkMain(iEnt)
 //====================================================
 public MinesTakeDamaged(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 {
-	static sClassName[MAX_CLASS_LENGTH];
 	static iMinesId;
 
 	if (pev_valid(victim))
 	{
-		pev(victim, pev_classname, sClassName, charsmax(sClassName));
-		iMinesId = ArrayFindString(gMinesClass, sClassName);
+		iMinesId = mines_get_minesId(victim);
 		// is this mines? no.
 		if (iMinesId == -1)
 			return HAM_IGNORED;
@@ -1094,7 +1086,6 @@ public MinesTakeDamaged(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 //====================================================
 public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 { 
-	static sClassName[MAX_CLASS_LENGTH];
 	static minesData[COMMON_MINES_DATA];
 
 	static iHit, iOwner, Float:health;
@@ -1107,8 +1098,7 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 	if (pev_valid(iHit))
 	{
 		static iMinesId;
-		pev(iHit, pev_classname, sClassName, charsmax(sClassName));
-		iMinesId = ArrayFindString(gMinesClass, sClassName);
+		iMinesId = mines_get_minesId(iHit);
 
 		if (iMinesId != -1)
 		{
@@ -1134,11 +1124,8 @@ public PlayerKilling(iVictim, inflictor, iAttacker, Float:damage, bits)
 {
 	static iMinesId;
 	static minesData[COMMON_MINES_DATA];
-	static sClassName[MAX_CLASS_LENGTH];
 
-	pev(iAttacker, pev_classname, sClassName, charsmax(sClassName));
-	iMinesId = ArrayFindString(gMinesClass, sClassName);
-
+	iMinesId = mines_get_minesId(iAttacker);
 	if (iMinesId == -1)
 		return HAM_IGNORED;
 
@@ -1170,8 +1157,8 @@ public PlayerKilling(iVictim, inflictor, iAttacker, Float:damage, bits)
 
 		new tDeath = cs_get_user_deaths(iVictim);
 
-		cs_set_user_deaths(iVictim, tDeath, false);
-		ExecuteHamB(Ham_AddPoints, iVictim, 0, true);
+		cs_set_user_deaths(iVictim, tDeath);
+		// ExecuteHamB(Ham_AddPoints, iVictim, 0, true);
 
 #if !defined ZP_SUPPORT && !defined BIOHAZARD_SUPPORT
 		// Get Money attacker.
@@ -1208,7 +1195,17 @@ public PlayerCmdStart(id, handle, random_seed)
 	{
 		if (!iInOldButton)
 		{
-			mines_show_menu(id, 0);
+			static body, target;
+			get_user_aiming(id, target, body);
+
+			// is valid target?
+			if(!pev_valid(target))
+				return FMRES_HANDLED;
+
+			static iMinesId;
+			iMinesId = mines_get_minesId(target);
+			mines_show_menu_sub(id, iMinesId);
+
 			return FMRES_HANDLED;
 		}
 	}
@@ -1229,15 +1226,12 @@ public PlayerCmdStart(id, handle, random_seed)
 			static iEnt;
 			static iMinesId;
 			static iReturn;
-			static sClassName[MAX_NAME_LENGTH];
 			iEnt = gDeployingMines[id];
 			// client_print(id, print_chat, "ENTITY ID: %d, USER ID: %d", iEnt, id);
 
 			if (pev_valid(iEnt) && !IsPlayer(iEnt))
 			{
-				pev(iEnt, pev_classname, sClassName, charsmax(sClassName));
-				iMinesId = ArrayFindString(gMinesClass, sClassName);
-
+				iMinesId = mines_get_minesId(iEnt);
 				if (!ExecuteForward(gForwarder[FWD_OVERRIDE_POS], iReturn, iEnt, id, iMinesId))
 				{
 					mines_cmd_progress_stop(id);
@@ -2180,9 +2174,11 @@ stock mines_remove_entity(iEnt)
 {
 	if (pev_valid(iEnt))
 	{
-		new iReturn;
+		new iReturn, flag;
 		ExecuteForward(gForwarder[FWD_REMOVE_ENTITY], iReturn, iEnt);
-		engfunc(EngFunc_RemoveEntity, iEnt);
+		pev(iEnt, pev_flags, flag);
+		set_pev(iEnt, pev_flags, flag | FL_KILLME);
+		// engfunc(EngFunc_RemoveEntity, iEnt);
 	}
 }
 
@@ -2770,4 +2766,12 @@ stock mines_show_status_text(id, szText[], msg)
 	write_byte(0);
 	write_string(szText);
 	message_end();	
+}
+
+stock mines_get_minesId(iEnt)
+{
+	static sClassName[MAX_NAME_LENGTH];
+	pev(iEnt, pev_classname, sClassName, charsmax(sClassName));
+
+	return ArrayFindString(gMinesClass, sClassName);
 }

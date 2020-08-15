@@ -61,12 +61,12 @@
 #define TURRET_MAXSPIN				5	// seconds turret barrel will spin w/o a target
 #define TURRET_MACHINE_VOLUME		0.5
 
-#define TURRET_PEV_POWERUP			pev_fuser2
-#define TURRET_PEV_CURRENT_ANGLES	pev_vuser1
-#define TURRET_PEV_GOAL_ANGLES		pev_vuser2
-#define TURRET_PEV_HACKED_GUNPOS	pev_vuser3
-#define TURRET_PEV_TURN_RATES		pev_fuser1
-#define TURRET_PEV_ORIENTATION		pev_iuser2	// 
+#define TR_PEV_POWERUP				pev_fuser2
+#define TR_PEV_CURRENT_ANGLES		pev_vuser1
+#define TR_PEV_GOAL_ANGLES			pev_vuser2
+#define TR_PEV_HACKED_GUNPOS		pev_vuser3
+#define TR_PEV_TURN_RATES			pev_fuser1
+#define TR_PEV_ORIENTATION			pev_iuser2	// 
 
 enum _:TURRET_ANIM
 {
@@ -353,26 +353,18 @@ public plugin_precache()
 //====================================================
 public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 {
-	if (iMinesId != gMinesId) return;
+	if (iMinesId != gMinesId) return 0;
 	// Entity Setting.
 	// set class name.
-	set_pev(iEnt, pev_classname, gEntName);
-
+	set_pev(iEnt, pev_classname, 	gEntName);
 	// set models.
-	engfunc(EngFunc_SetModel, iEnt, gEntModel);
-
+	engfunc(EngFunc_SetModel, 		iEnt, gEntModel);
 	// set solid.
-	set_pev(iEnt, pev_solid, SOLID_NOT);
-
+	set_pev(iEnt, pev_solid, 		SOLID_NOT);
 	// set movetype.
-	set_pev(iEnt, pev_movetype, MOVETYPE_FLY);
-
+	set_pev(iEnt, pev_movetype, 	MOVETYPE_FLY);
 	// set model animation.
 	set_pev(iEnt, pev_body, 		0);
-	UTIL_PlayAnim(iEnt, TURRET_ANIM_NONE, 120.0, 0.1, 0.1);
-
-	set_pev(iEnt, TURRET_PEV_ORIENTATION, FLOOR_MOUNT);
-
 	set_pev(iEnt, pev_rendermode,	kRenderNormal);
 	set_pev(iEnt, pev_renderfx,	 	kRenderFxNone);
 
@@ -380,42 +372,58 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	set_pev(iEnt, pev_takedamage, DAMAGE_YES);
 	set_pev(iEnt, pev_dmg, 100.0);
 
+	UTIL_PlayAnim(iEnt, TURRET_ANIM_NONE, 120.0, 0.1, 0.1);
+	set_pev(iEnt, TR_PEV_ORIENTATION, FLOOR_MOUNT);
+
+	// set size.
+	new Float:mins[3], Float:maxs[3];
+	if (GetModelBoundingBox(iEnt, mins, maxs, Model_CurrentSequence))
+		engfunc(EngFunc_SetSize, iEnt, 	mins, maxs);
+	else
+		engfunc(EngFunc_SetSize, iEnt, 	Float:{ -7.8, -26.0, -8.44 }, Float:{ 7.8, 4.8, 7.8 });
+
 	// set entity health.
 	mines_set_health(iEnt, gMinesData[MINE_HEALTH]);
 
-	// set mine position
-	set_mine_position(uID, iEnt);
-
 	// Save results to be used later.
-	set_pev(iEnt, MINES_OWNER, uID );
+	set_pev(iEnt, MINES_OWNER, 		uID);
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
-	set_pev(iEnt, TURRET_PEV_POWERUP, fCurrTime + 2.5 );
-	set_pev(iEnt, MINES_STEP, DEPLOY);
+	set_pev(iEnt, TR_PEV_POWERUP, 	fCurrTime + 2.5);
+	set_pev(iEnt, MINES_STEP, 		DEPLOY);
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.2 );
 
 	// Power up sound.
 	// cm_play_sound(iEnt, SOUND_POWERUP);
+	return 1;
 }
 
 //====================================================
 // Set TURRET Position.
 //====================================================
-set_mine_position(uID, iEnt)
+public mines_entity_set_position(iEnt, uID, iMinesId)
 {
+	if (iMinesId != gMinesId) return 0;
+
 	// Vector settings.
-	new Float:vOrigin[3];
-	new	Float:vNewOrigin[3],Float:vNormal[3],
-		Float:vTraceEnd[3],Float:vEntAngles[3];
+	new Float:vOrigin	[3],Float:vViewOfs	[3];
+	new	Float:vNewOrigin[3],Float:vNormal	[3],
+		Float:vTraceEnd	[3],Float:vEntAngles[3];
+	new Float:vDecals	[3];
+	new iReturn = 0;
 
 	// get user position.
-	pev(uID, pev_origin, vOrigin);
+	pev(uID, pev_origin, 	vOrigin);
+	pev(uID, pev_view_ofs, 	vViewOfs);
+
 	velocity_by_aim(uID, 128, vTraceEnd);
 	vTraceEnd[2] = -128.0;
-	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd );
+
+	xs_vec_add(vOrigin, 	vViewOfs, 	vOrigin);
+	xs_vec_add(vTraceEnd, 	vOrigin, 	vTraceEnd);
 
     // create the trace handle.
 	new trace = create_tr2();
@@ -431,43 +439,37 @@ set_mine_position(uID, iEnt)
 			// -- Save results to be used later.
 			get_tr2( trace, TR_vecEndPos, vTraceEnd );
 			get_tr2( trace, TR_vecPlaneNormal, vNormal );
+
+			if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
+			{
+				// calc Decal position.
+				xs_vec_add(vTraceEnd, vNormal, vDecals);
+				// TURRET user Angles.
+				new Float:pAngles[3];
+				pev(uID, pev_angles, pAngles);
+
+				// Rotate tripmine.
+				vector_to_angle(vNormal, vEntAngles);
+				vEntAngles[0] = 0.0;
+				vEntAngles[1] = pAngles[1];
+				vEntAngles[2] = 0.0;
+
+				// xs_vec_mul_scalar( vNormal, 1.0, vNormal);
+				xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
+
+				// set entity position.
+				engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
+
+				// set angle.
+				set_pev(iEnt, pev_angles, 	vEntAngles);
+				set_pev(iEnt, MINES_DECALS, vDecals);
+				iReturn = 1;
+			}
 		}
 	}
     // free the trace handle.
 	free_tr2(trace);
-
-	// xs_vec_mul_scalar( vNormal, 1.0, vNormal );
-	xs_vec_add( vTraceEnd, vNormal, vNewOrigin );
-
-	set_pev(iEnt, pev_sequence, 0);
-
-	// set size.
-	new Float:mins[3], Float:maxs[3];
-	if (GetModelBoundingBox(iEnt, mins, maxs, Model_CurrentSequence))
-	{
-		engfunc(EngFunc_SetSize, iEnt, mins, maxs);
-		client_print_color(0, print_chat, "%.2f, %.2f, %.2f %.2f, %.2f, %.2f", mins[0], mins[1], mins[2], maxs[0], maxs[1], maxs[2]);
-	}
-	else
-		// -16.91, -13.28, -0.01 13.30, 13.29, 57.02
-		engfunc(EngFunc_SetSize, iEnt, Float:{ -7.8, -26.0, -8.44 }, Float:{ 7.8, 4.8, 7.8 } );
-	// set entity position.
-	engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin );
-
-	// TURRET user Angles.
-	new Float:pAngles[3];
-	pev(uID, pev_angles, pAngles);
-	pAngles[0]   = -90.0;
-	pAngles[1]  += 90.0;
-
-	// Rotate tripmine.
-	vector_to_angle(vNormal, vEntAngles);
-	xs_vec_add(vEntAngles, pAngles, vEntAngles); 
-
-	// set angle.
-	// set_pev(iEnt, pev_angles, vEntAngles);
-	Turret_Initialize(iEnt);
-	Turret_Deploy(iEnt);
+	return iReturn;
 }
 
 //====================================================
@@ -528,7 +530,8 @@ public MinesThink(iEnt, iMinesId)
 //====================================================
 public CheckForDeploy(id, iMinesId)
 {
-	if(iMinesId != gMinesId) return false;
+	if(iMinesId != gMinesId) 
+		return false;
 
 	new Float:vTraceEnd[3];
 	new Float:vOrigin[3];
@@ -591,69 +594,11 @@ public MinesBreaked(iMinesId, iEnt, iAttacker)
 // 	}
 // }
 
-public mines_deploy_hologram(id, iEnt, iMinesId)
-{
-	if (iMinesId != gMinesId)
-		return 0;
 
-	// Vector settings.
-	static	Float:vOrigin[3];
-	static	Float:vNewOrigin[3],Float:vNormal[3],
-			Float:vTraceEnd[3],Float:vEntAngles[3];
 
-	// Get wall position.
-	velocity_by_aim(id, 128, vTraceEnd);
-	vTraceEnd[2] = -128.0;
-
-	// get user position.
-	pev(id, pev_origin, vOrigin);
-	xs_vec_add(vTraceEnd, vOrigin, vTraceEnd);
-
-	// create the trace handle.
-	static trace;
-	static result;
-	result = 0;
-	trace = create_tr2();
-
-	// get wall position to vNewOrigin.
-	engfunc(EngFunc_TraceLine, vOrigin, vTraceEnd, IGNORE_MONSTERS, id, trace);
-	{
-		// -- We hit something!
-		// -- Save results to be used later.
-		get_tr2(trace, TR_vecEndPos, vTraceEnd);
-		get_tr2(trace, TR_vecPlaneNormal, vNormal);
-
-		if (xs_vec_distance(vOrigin, vTraceEnd) < 128.0)
-		{
-			// xs_vec_mul_scalar(vNormal, 8.0, vNormal);
-			xs_vec_add(vTraceEnd, vNormal, vNewOrigin);
-			// set entity position.
-			engfunc(EngFunc_SetOrigin, iEnt, vNewOrigin);
-			// TURRET user Angles.
-			new Float:pAngles[3];
-			pev(id, pev_angles, pAngles);
-			pAngles[0]   = -90.0;
-			pAngles[1]  +=  90.0;
-
-			// Rotate tripmine.
-			vector_to_angle(vNormal, vEntAngles);
-			xs_vec_add(vEntAngles, pAngles, vEntAngles); 
-			// set angle.
-			// set_pev(iEnt, pev_angles, vEntAngles);
-			Turret_Initialize(iEnt);
-			result = 1;
-		}
-		else
-		{
-			result = 0;
-		}
-	}
-	// free the trace handle.
-	free_tr2(trace);
-
-	return result;
-}
-
+//====================================================
+// Include HLSDK
+//====================================================
 stock UTIL_PlayAnim(const id, const sequence, Float:frame=0.0, Float:framerate=1.0, Float:animtime=1.0)
 {
 	set_pev(id, pev_sequence, 		sequence);
@@ -663,9 +608,6 @@ stock UTIL_PlayAnim(const id, const sequence, Float:frame=0.0, Float:framerate=1
 	set_pev(id, pev_animtime, 		get_gametime() + animtime); //get_gametime()
 }
 
-//====================================================
-// Include HLSDK
-//====================================================
 stock Float:StudioFrameAdvance(iEnt, Float:flInterval = 0.0, Float:flFrameRate = 0.0, fSequenceLoops = 0)
 {
 	new Float:animtime;
@@ -716,7 +658,7 @@ stock Turret_Initialize(iEnt)
 	set_controller(iEnt, 0, 0.0);
 	set_controller(iEnt, 1, 0.0);
 
-	if( pev(iEnt, TURRET_PEV_ORIENTATION) == CEILING_MOUNT)
+	if(pev(iEnt, TR_PEV_ORIENTATION) == CEILING_MOUNT)
 	{
 		pev(iEnt, pev_view_ofs, vecOfs);
 		vecOfs[2] = -vecOfs[2];
@@ -735,7 +677,7 @@ stock Turret_Initialize(iEnt)
 
 	vecGoalAngles[0] = 0.0;
 	// m_flLastSight = get_gametime() + TURRET_MAXWAIT;
-	set_pev(iEnt, TURRET_PEV_GOAL_ANGLES, vecGoalAngles);
+	set_pev(iEnt, TR_PEV_GOAL_ANGLES, vecGoalAngles);
 	set_pev(iEnt, pev_nextthink, get_gametime() + 0.1);
 }
 
@@ -759,8 +701,8 @@ stock Turret_Deploy(iEnt)
 		new Float:vecAngles[3];
 		new iOrientation = 0;
 
-		pev(iEnt, TURRET_PEV_CURRENT_ANGLES, vecCurAngles);
-		pev(iEnt, TURRET_PEV_ORIENTATION,	 iOrientation);
+		pev(iEnt, TR_PEV_CURRENT_ANGLES, vecCurAngles);
+		pev(iEnt, TR_PEV_ORIENTATION,	 iOrientation);
 		pev(iEnt, pev_angles, vecAngles);
 		// pev->maxs.z = m_iDeployHeight;
 		// pev->mins.z = -m_iDeployHeight;
@@ -775,7 +717,7 @@ stock Turret_Deploy(iEnt)
 
 		Turret_SetTurretAnim(iEnt, TURRET_ANIM_SPIN);
 		set_pev(iEnt, pev_framerate, 0.0);
-		set_pev(iEnt, TURRET_PEV_CURRENT_ANGLES, vecCurAngles);
+		set_pev(iEnt, TR_PEV_CURRENT_ANGLES, vecCurAngles);
 		set_pev(iEnt, MINES_STEP, SEARCH);
 	}
 
@@ -1004,7 +946,7 @@ stock Turret_Ping(iEnt)
 		EyeOff( );
 	}
 }
-
+/*
 void CBaseTurret::Retire(void)
 {
 	// make the turret level
@@ -1468,7 +1410,7 @@ stock Turret_ActiveThink(iEnt)
 		m_vecCurAngles.x, m_vecCurAngles.y,
 		gpGlobals->v_forward.x, gpGlobals->v_forward.y, gpGlobals->v_forward.z );
 	*/
-	
+	/*
 	Vector vecLOS = vecDirToEnemy; //vecMid - m_vecLastSight;
 	vecLOS = vecLOS.Normalize();
 
@@ -1545,7 +1487,7 @@ stock Turret_ActiveThink(iEnt)
 	SpinUpCall();
 	MoveTurret();
 }
-
+*/
 /*
 ================
 FireBullets
@@ -1556,6 +1498,7 @@ param: iEnt
 param: cShot = 1
 */
 //	  FireBullets(iEnt, 1, 			vecSrc, 		 vecDirToEnemy, 		  TURRET_SPREAD, 	  TURRET_RANGE, 	BULLET_MONSTER_MP5, 1 );
+/*
 stock FireBullets
 (	
 	iEnt,
@@ -1599,8 +1542,7 @@ stock FireBullets
 		Vector vecEnd;
 
 		vecEnd = vecSrc + vecDir * flDistance;
-		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev )/*pentIgnore*/, &tr );
-
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev )/*pentIgnore*//*, &tr );
 		tracer = 0;
 		if( iTracerFreq != 0 && ( tracerCount++ % iTracerFreq ) == 0 )
 		{
@@ -1684,7 +1626,8 @@ stock FireBullets
 			}
 		}
 		// make bullet trails
-		UTIL_BubbleTrail( vecSrc, tr.vecEndPos, (int)( ( flDistance * tr.flFraction ) / 64.0f ) );
+//		UTIL_BubbleTrail( vecSrc, tr.vecEndPos, (int)( ( flDistance * tr.flFraction ) / 64.0f ) );
 	}
-	ApplyMultiDamage( pev, pevAttacker );
+	//ApplyMultiDamage( pev, pevAttacker );
 }
+*/

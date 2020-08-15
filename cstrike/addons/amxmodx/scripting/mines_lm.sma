@@ -59,9 +59,7 @@
 #define LASERMINE_COUNT				pev_fuser1
 #define LASERMINE_POWERUP			pev_fuser2
 #define LASERMINE_BEAMTHINK			pev_fuser3
-#define LASERMINE_BEAMENDPOINT1		pev_vuser1
-#define LASERMINE_BEAMENDPOINT2		pev_vuser2
-#define LASERMINE_BEAMENDPOINT3		pev_vuser3
+#define LASERMINE_BEAMENDPOINT1		pev_vuser2
 
 enum _:HIT_PLAYER
 {
@@ -545,6 +543,8 @@ public mines_entity_set_position(iEnt, uID, iMinesId)
 				vector_to_angle(vNormal, vEntAngles);
 				// set angle.
 				set_pev(iEnt, pev_angles, vEntAngles);
+				set_pev(iEnt, MINES_DECALS, 	vDecals);
+
 				// set laserbeam end point position.
 				set_laserend_postiion(iEnt, vNormal, vNewOrigin);
 

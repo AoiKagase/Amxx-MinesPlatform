@@ -21,9 +21,15 @@
 #define ENT_CLASS_BREAKABLE			"func_breakable"
 
 // CS Status Data.
-#define mines_get_user_deaths(%1)		get_ent_data(%1, "CbasePlayer",	"m_iDeaths")
-#define mines_set_user_deaths(%1,%2)	set_ent_data(%1, "CbasePlayer",	"m_iDeaths", %2)
+// #define mines_get_user_deaths(%1)		get_ent_data(%1, "CbasePlayer",	"m_iDeaths")
+// #define mines_set_user_deaths(%1,%2)	set_ent_data(%1, "CbasePlayer",	"m_iDeaths", %2)
+#if AMXX_VERSION_NUM < 190
+#define XTRA_OFS_PLAYER        			5
+#define m_LastHitGroup        			75
+#define mines_set_user_lasthit(%1,%2)	set_pdata_int(%1, m_LastHitGroup, %2)
+#else
 #define mines_set_user_lasthit(%1,%2)	set_ent_data(%1, "CBaseMonster","m_LastHitGroup", %2)
+#endif
 
 #define mines_get_health(%1,%2)			pev(%1, pev_health, %2)
 #define mines_set_health(%1,%2)			set_pev(%1, pev_health, %2)
