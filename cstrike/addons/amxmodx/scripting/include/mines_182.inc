@@ -54,7 +54,7 @@ stock bind_pcvar_float(pointer, &Float:value)
 stock bind_pcvar_string(pointer, any:value[], len)
 	get_pcvar_string(pointer, value, len);
 
-	#if !defined MAX_FMT_LENGTH
+#if !defined MAX_FMT_LENGTH
 const MAX_FMT_LENGTH = 256;
 
 #if !defined __vformat_allower
