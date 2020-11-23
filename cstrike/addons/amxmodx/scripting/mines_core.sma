@@ -1177,7 +1177,7 @@ public PlayerKilling(iVictim, inflictor, iAttacker, Float:damage, bits)
 public PlayerCmdStart(id, handle, random_seed)
 {
 	// Not alive
-	if(!is_user_alive(id))
+	if(!is_user_alive(id) || is_user_bot(id))
 		return FMRES_IGNORED;
 
 	// Get user old and actual buttons
@@ -1204,7 +1204,8 @@ public PlayerCmdStart(id, handle, random_seed)
 
 			static iMinesId;
 			iMinesId = mines_get_minesId(target);
-			mines_show_menu_sub(id, iMinesId);
+			if (iMinesId != -1)
+				mines_show_menu_sub(id, iMinesId);
 
 			return FMRES_HANDLED;
 		}
