@@ -19,6 +19,7 @@
 #include <xs>
 #include <mines_common>
 #include <mines_natives>
+#include <beams>
 #if defined ZP_SUPPORT
 	#include <zp50_colorchat>
 	#include <zp50_ammopacks>
@@ -41,8 +42,6 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Tripmine"
-#define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"0.05"
 #define CVAR_TAG					"mines_tm"
 
 #define LANG_KEY_PLANT_WALL   		"TM_PLANT_WALL"
@@ -53,10 +52,11 @@
 
 #define ENT_CLASS_TRIP				"tripmine"
 
-#define TRIPMINE_COUNT				pev_fuser1
-#define TRIPMINE_POWERUP			pev_fuser2
-#define TRIPMINE_BEAMTHINK			pev_fuser3
-#define TRIPMINE_BEAMENDPOINT		pev_vuser2
+#define TRIPMINE_BEAMID				"CED_MINES_TM_I_BEAMID"
+#define TRIPMINE_COUNT				"CED_MINES_TM_F_COUNT"
+#define TRIPMINE_POWERUP			"CED_MINES_TM_F_POWERUP"
+#define TRIPMINE_BEAMTHINK			"CED_MINES_TM_F_BEAMTHINK"
+#define TRIPMINE_BEAMENDPOINT		"CED_MINES_TM_V_BEAMENDPOINT"
 
 //
 // CVAR SETTINGS
@@ -106,8 +106,8 @@ enum _:CVAR_VALUE
 	VL_TEAM_MAX     	    ,    	// Max deployed in team.
 	VL_BUY_MODE     	    ,   	// Buy mode. 0 = off, 1 = on.
 	VL_LASER_VISIBLE    	,   	// Laser line Visiblity. 0 = off, 1 = on.
-	VL_LASER_BRIGHT     	,   	// Laser line brightness.
-	VL_LASER_WIDTH			,		// Laser line width.
+	Float:VL_LASER_BRIGHT   ,   	// Laser line brightness.
+	Float:VL_LASER_WIDTH	,		// Laser line width.
 	VL_LASER_COLOR      	,   	// Laser line color. 0 = team color, 1 = green
 	VL_MINE_GLOW        	,   	// Glowing tripmine.
 	VL_MINE_GLOW_MODE   	,   	// Glowing color mode.
@@ -134,7 +134,7 @@ enum _:CVAR_VALUE
 //====================================================
 new gCvar[CVAR_SETTING];
 new gCvarValue[CVAR_VALUE];
-new gBeam;
+
 new gMinesId;
 
 new gMinesData[COMMON_MINES_DATA];
@@ -248,9 +248,9 @@ public hook_cvars(pcvar, const old_value[], const new_value[])
 				// Laser line Visiblity. 0 = off, 1 = on.
 				case CVAR_LASER_VISIBLE	: gCvarValue[VL_LASER_VISIBLE]	= str_to_num(new_value);
 				// Laser line brightness.
-				case CVAR_LASER_BRIGHT	: gCvarValue[VL_LASER_BRIGHT]	= str_to_num(new_value);
+				case CVAR_LASER_BRIGHT	: gCvarValue[VL_LASER_BRIGHT]	= str_to_float(new_value);
 				// Laser line width.
-				case CVAR_LASER_WIDTH	: gCvarValue[VL_LASER_WIDTH] 	= str_to_num(new_value);
+				case CVAR_LASER_WIDTH	: gCvarValue[VL_LASER_WIDTH] 	= str_to_float(new_value);
 				// Laser line color. 0 = team color, 1 = green
 				case CVAR_LASER_COLOR	: gCvarValue[VL_LASER_COLOR] 	= str_to_num(new_value);
 				// Glowing tripmine.
@@ -311,8 +311,8 @@ bind_cvars()
 	bind_pcvar_num		(gCvar[CVAR_MINE_GLOW_MODE],gCvarValue[VL_MINE_GLOW_MODE]);
 
 	bind_pcvar_num		(gCvar[CVAR_LASER_VISIBLE],	gCvarValue[VL_LASER_VISIBLE]); 	// Laser line Visiblity. 0 = off, 1 = on.
-	bind_pcvar_num		(gCvar[CVAR_LASER_BRIGHT],	gCvarValue[VL_LASER_BRIGHT]);  	// Laser line brightness.
-	bind_pcvar_num		(gCvar[CVAR_LASER_WIDTH],	gCvarValue[VL_LASER_WIDTH]);	// Laser line width.
+	bind_pcvar_float	(gCvar[CVAR_LASER_BRIGHT],	gCvarValue[VL_LASER_BRIGHT]);  	// Laser line brightness.
+	bind_pcvar_float	(gCvar[CVAR_LASER_WIDTH],	gCvarValue[VL_LASER_WIDTH]);	// Laser line width.
 	bind_pcvar_num		(gCvar[CVAR_LASER_COLOR],	gCvarValue[VL_LASER_COLOR]);  	// Laser line color. 0 = team color, 1 = green
 
 	bind_pcvar_float	(gCvar[CVAR_LASER_RANGE],	gCvarValue[VL_LASER_RANGE]);	// Laserbeam range.
@@ -375,7 +375,7 @@ public plugin_precache()
 	precache_sound(ENT_SOUND2);
 	precache_sound(ENT_SOUND3);
 	precache_model(ENT_MODELS);
-	gBeam = precache_model(ENT_SPRITE1);
+	precache_model(ENT_SPRITE1);
 	
 	return PLUGIN_CONTINUE;
 }
@@ -420,15 +420,15 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	mines_set_health(iEnt, 					gCvarValue[VL_MINE_HEALTH]);
 
 	// Save results to be used later.
-	set_pev(iEnt, MINES_OWNER, 				uID);
+	CED_SetCell(iEnt, MINES_OWNER,			uID);
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
 
-	set_pev(iEnt, TRIPMINE_POWERUP, 		fCurrTime + 2.5 );   
-	set_pev(iEnt, MINES_STEP, 				POWERUP_THINK);
-	set_pev(iEnt, TRIPMINE_COUNT, 			fCurrTime);
-	set_pev(iEnt, TRIPMINE_BEAMTHINK, 		fCurrTime);
+	CED_SetCell(iEnt, TRIPMINE_POWERUP,		fCurrTime + 2.5);
+	CED_SetCell(iEnt, MINES_STEP,			POWERUP_THINK);
+	CED_SetCell(iEnt, TRIPMINE_COUNT,		fCurrTime);
+	CED_SetCell(iEnt, TRIPMINE_BEAMTHINK,	fCurrTime);
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, 			fCurrTime + 0.2 );
@@ -493,7 +493,7 @@ public mines_entity_set_position(iEnt, uID, iMinesId)
 
 				// set angle.
 				set_pev(iEnt, pev_angles, 		vEntAngles);
-				set_pev(iEnt, MINES_DECALS, 	vDecals);
+				CED_GetArray(iEnt, MINES_DECALS,vDecals, sizeof(vDecals));
 
 				// set laserbeam end point position.
 				set_laserend_postiion(iEnt, vNormal,	vNewOrigin);
@@ -529,7 +529,7 @@ set_laserend_postiion(iEnt, Float:vNormal[3], Float:vNewOrigin[3])
 	}
     // free the trace handle.
 	free_tr2(trace);
-	set_pev(iEnt, TRIPMINE_BEAMENDPOINT, vTracedBeamEnd);
+	CED_SetArray(iEnt, TRIPMINE_BEAMENDPOINT, vTracedBeamEnd, sizeof(vTracedBeamEnd));
 }
 
 //====================================================
@@ -544,14 +544,20 @@ public MinesThink(iEnt, iMinesId)
 	if (iMinesId != gMinesId)
 		return;
 
+	static step;
+	if (!CED_GetCell(iEnt, MINES_STEP, step))
+		return;
+
 	static Float:fCurrTime;
 	static Float:vEnd[3];
-	static step;
-
+	static iOwner;
 	fCurrTime = get_gametime();
-	step = pev(iEnt, MINES_STEP);
 	// Get Laser line end potision.
-	pev(iEnt, TRIPMINE_BEAMENDPOINT, vEnd);
+	if (!CED_GetArray(iEnt, TRIPMINE_BEAMENDPOINT, vEnd, sizeof(vEnd)))
+		return;
+
+	if (!CED_GetCell(iEnt, MINES_OWNER, iOwner))
+		return;
 
 	// lasermine state.
 	// Power up.
@@ -577,7 +583,7 @@ public MinesThink(iEnt, iMinesId)
 			tm_play_sound(iEnt, SOUND_STOP);
 
 			// effect explosion.
-			mines_explosion(pev(iEnt, MINES_OWNER), iMinesId, iEnt);
+			mines_explosion(iOwner, iMinesId, iEnt);
 		}
 	}
 
@@ -587,13 +593,13 @@ public MinesThink(iEnt, iMinesId)
 mines_step_powerup(iEnt, Float:fCurrTime)
 {
 	static Float:fPowerupTime;
-	pev(iEnt, TRIPMINE_POWERUP, fPowerupTime);
+	CED_GetCell(iEnt, TRIPMINE_POWERUP, fPowerupTime);
 	// over power up time.
 		
 	if (fCurrTime > fPowerupTime)
 	{
 		// next state.
-		set_pev(iEnt, MINES_STEP, BEAMUP_THINK);
+		CED_SetCell(iEnt, MINES_STEP, BEAMUP_THINK);
 		// activate sound.
 		tm_play_sound(iEnt, SOUND_ACTIVATE);
 
@@ -611,13 +617,14 @@ mines_step_beamup(iEnt, Float:vEnd[3], Float:fCurrTime)
 	// drawing laser line.
 	if (gCvarValue[VL_LASER_VISIBLE])
 	{
-		draw_laserline(iEnt, vEnd);
+		new beam = draw_laserline(iEnt, vEnd);
+		CED_SetCell(iEnt, TRIPMINE_BEAMID, beam);
 	}
 
-	// next state.
-	set_pev(iEnt, MINES_STEP, BEAMBREAK_THINK);
 	// Think time.
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
+	// next state.
+	CED_SetCell(iEnt, MINES_STEP, BEAMBREAK_THINK);
 }
 
 mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
@@ -632,25 +639,25 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 	static Float:beamTime = 0.0;
 
 	// Get this mine position.
-	pev(iEnt, pev_origin, 			vOrigin);
-	pev(iEnt, TRIPMINE_COUNT, 		nextTime);
-	pev(iEnt, TRIPMINE_BEAMTHINK, 	beamTime);
-	iOwner = pev(iEnt, MINES_OWNER);
+	pev(iEnt, pev_origin, 					vOrigin);
+	if (!CED_GetCell(iEnt, TRIPMINE_COUNT, 		nextTime)) return false;
+	if (!CED_GetCell(iEnt, TRIPMINE_BEAMTHINK, 	beamTime)) return false;
+	if (!CED_GetCell(iEnt, MINES_OWNER, 		iOwner))   return false;
 
 	if (fCurrTime > beamTime)
 	{
 		// drawing spark.
-		if (gCvarValue[VL_LASER_VISIBLE])
-			draw_laserline(iEnt, vEnd);
+		// if (gCvarValue[VL_LASER_VISIBLE])
+		// 	draw_laserline(iEnt, vEnd);
 
-		set_pev(iEnt, TRIPMINE_BEAMTHINK, fCurrTime + random_float(0.1, 0.2));
+		CED_SetCell(iEnt, TRIPMINE_BEAMTHINK, fCurrTime + random_float(0.1, 0.2));
 	}
 
 	// create the trace handle.
 	trace = create_tr2();
 
 	fFraction	= 0.0;
-	set_pev(iEnt, TRIPMINE_COUNT, get_gametime());
+	CED_SetCell(iEnt, TRIPMINE_COUNT, get_gametime());
 
 	// Trace line
 	engfunc(EngFunc_TraceLine, vOrigin, vEnd, DONT_IGNORE_MONSTERS, iEnt, trace);
@@ -660,34 +667,35 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 		get_tr2(trace, TR_vecEndPos, vHitPoint);				
 	}
 
+	// is valid hit entity?
+	if (!pev_valid(iTarget))
+		return false;
+
 	// Something has passed the laser.
-	if (fFraction < 1.0)
-	{
-		// is valid hit entity?
-		if (pev_valid(iTarget))
-		{
-			// is user?
-			if (pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER))
-			{
-				// is dead?
-				if(is_user_alive(iTarget))
-				{
-					// Hit friend and No FF.
-					if(mines_valid_takedamage(iOwner, iTarget))
-					{
-						// is godmode?
-						if (get_user_godmode(iTarget))
-						{
-							// keep target id.
-							set_pev(iEnt, pev_enemy, iTarget);
-							// State change. to Explosing step.
-							set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);
-						}
-					}
-				}
-			}
-		}
-	}
+	if (fFraction >= 1.0)
+		return false;
+
+	// is user?
+	if (!(pev(iTarget, pev_flags) & (FL_CLIENT | FL_FAKECLIENT | FL_MONSTER)))
+		return false;
+	
+	// is dead?
+	if (!is_user_alive(iTarget))
+		return false;
+
+	// Hit friend and No FF.
+	if (!mines_valid_takedamage(iOwner, iTarget))
+		return false;
+
+	// is godmode?
+	if (get_user_godmode(iTarget))
+		return false;
+
+	// keep target id.
+	set_pev(iEnt, pev_enemy, iTarget);
+	// State change. to Explosing step.
+	CED_SetCell(iEnt, MINES_STEP, EXPLOSE_THINK);
+
 
 	// free the trace handle.
 	free_tr2(trace);
@@ -700,7 +708,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 	if (iHealth <= 0 || (pev(iEnt, pev_flags) & FL_KILLME))
 	{
 		// next step explosion.
-		set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);
+		CED_SetCell(iEnt, MINES_STEP, EXPLOSE_THINK);
 		set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
 	}
 				
@@ -715,7 +723,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3], Float:fCurrTime)
 //====================================================
 draw_laserline(iEnt, const Float:vEndOrigin[3])
 {
-	new tcolor	[3];
+	new Float:tcolor[3];
 	new CsTeams:teamid  = mines_get_owner_team(iEnt);
 
 	// Color mode. 0 = team color.
@@ -724,21 +732,21 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		switch(teamid)
 		{
 			case CS_TEAM_T:
-				for(new i = 0; i < 3; i++) tcolor[i] = get_color(get_cvar_to_color(gCvarValue[VL_LASER_COLOR_TR]), i);
+				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvarValue[VL_LASER_COLOR_TR]), i));
 			case CS_TEAM_CT:
-				for(new i = 0; i < 3; i++) tcolor[i] = get_color(get_cvar_to_color(gCvarValue[VL_LASER_COLOR_CT]), i);
+				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color(gCvarValue[VL_LASER_COLOR_CT]), i));
 			default:
 #if !defined BIOHAZARD_SUPPORT
-				for(new i = 0; i < 3; i++) tcolor[i] = get_color(get_cvar_to_color("0,255,0"), i);
+				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color("0,255,0"), i));
 #else
-				for(new i = 0; i < 3; i++) tcolor[i] = get_color(get_cvar_to_color("255,0,0"), i);
+				for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color("255,0,0"), i));
 #endif
 		}
 
 	}else
 	{
 		// Green.
-		for(new i = 0; i < 3; i++) tcolor[i] = get_color(get_cvar_to_color("0,255,0"), i);
+		for(new i = 0; i < 3; i++) tcolor[i] = float(get_color(get_cvar_to_color("0,255,0"), i));
 	}
 	/*
 		const iEnt,
@@ -753,7 +761,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		const bright		= 255,
 		const speed			= 255
 	*/
-	draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 2, gCvarValue[VL_LASER_WIDTH], 0, tcolor, gCvarValue[VL_LASER_BRIGHT], 255);
+	draw_laser(iEnt, vEndOrigin, ENT_SPRITE1, 0, 0, gCvarValue[VL_LASER_WIDTH], 0, tcolor, gCvarValue[VL_LASER_BRIGHT], 255.0);
 }
 
 //====================================================
@@ -837,37 +845,57 @@ stock draw_laser(
 	const iEnt,
 	/* const Float:vOrigin[3],*/ 
 	const Float:vEndOrigin[3], 
-	const beam, 
+	const beam[], 
 	const framestart	= 0, 
 	const framerate		= 0, 
-	const life			= 1, 
-	const width			= 1, 
+	// const life			= 1, 
+	const Float:width	= 1.0, 
 	const wave			= 0, 
-	const tcolor		[3],
-	const bright		= 255,
-	const speed			= 255
+	const Float:tcolor	[3],
+	const Float:bright	= 255.0,
+	const Float:speed	= 255.0
 )
 {
-	// Draw Laser line message.
-	engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
-	write_byte(TE_BEAMENTPOINT);
-	write_short(iEnt | 0x1000);
-	// engfunc(EngFunc_WriteCoord, vOrigin[0]);
-	// engfunc(EngFunc_WriteCoord, vOrigin[1]);
-	// engfunc(EngFunc_WriteCoord, vOrigin[2]);
-	engfunc(EngFunc_WriteCoord, vEndOrigin[0]); //Random
-	engfunc(EngFunc_WriteCoord, vEndOrigin[1]); //Random
-	engfunc(EngFunc_WriteCoord, vEndOrigin[2]); //Random
-	write_short(beam);
-	write_byte(framestart);						// framestart
-	write_byte(framerate);						// framerate
-	write_byte(life);							// Life
-	write_byte(width);							// Width
-	write_byte(wave);							// wave/noise
-	write_byte(tcolor[0]);						// r
-	write_byte(tcolor[1]);						// g
-	write_byte(tcolor[2]);						// b
-	write_byte(bright);							// Brightness.
-	write_byte(speed);							// speed
-	message_end();
+	// // Draw Laser line message.
+	// engfunc(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
+	// write_byte(TE_BEAMENTPOINT);
+	// write_short(iEnt | 0x1000);
+	// // engfunc(EngFunc_WriteCoord, vOrigin[0]);
+	// // engfunc(EngFunc_WriteCoord, vOrigin[1]);
+	// // engfunc(EngFunc_WriteCoord, vOrigin[2]);
+	// engfunc(EngFunc_WriteCoord, vEndOrigin[0]); //Random
+	// engfunc(EngFunc_WriteCoord, vEndOrigin[1]); //Random
+	// engfunc(EngFunc_WriteCoord, vEndOrigin[2]); //Random
+	// write_short(beam);
+	// write_byte(framestart);						// framestart
+	// write_byte(framerate);						// framerate
+	// write_byte(life);							// Life
+	// write_byte(width);							// Width
+	// write_byte(wave);							// wave/noise
+	// write_byte(tcolor[0]);						// r
+	// write_byte(tcolor[1]);						// g
+	// write_byte(tcolor[2]);						// b
+	// write_byte(bright);							// Brightness.
+	// write_byte(speed);							// speed
+	// message_end();
+
+	new beams = Beam_Create(beam, width);
+	Beam_PointEntInit(beams, vEndOrigin, iEnt);
+	Beam_SetFrame(beams, framestart);
+	Beam_SetFlags(beams, kRenderTransAdd);
+	set_pev(beams, pev_framerate, framerate);
+	Beam_SetNoise(beams, wave);
+	Beam_SetColor(beams, tcolor);
+	Beam_SetBrightness(beams, bright);
+	Beam_SetScrollRate(beams, speed);
+	return beams;
+}
+
+public mines_remove_entity(iEnt)
+{
+	new beam;
+	if (!CED_GetCell(iEnt, TRIPMINE_BEAMID, beam))
+		return;
+	
+	engfunc(EngFunc_RemoveEntity, beam);
 }

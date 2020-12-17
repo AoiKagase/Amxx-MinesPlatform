@@ -15,6 +15,7 @@
 native register_mines				(classname[MAX_CLASS_LENGTH], langKey[MAX_NAME_LENGTH]);
 native register_mines_data			(iMinesId, minesData[COMMON_MINES_DATA], const minesModel[]);
 
+native mines_get_csx_weapon_id		(iMinesId);
 // If you want to deploy or pick up in each mines logic, call these.
 // Normally it is not used because it is processed by core.
 native mines_progress_deploy		(id, iMinesId);
@@ -35,6 +36,13 @@ native mines_valid_takedamage		(iAttacker, iTarget);
 native mines_register_dictionary	(path[]);
 // Set Custom Resources.
 native mines_resources				(iMinesId, key[], value[], size, def[]);
+
+// Create Effects
+native mines_create_explosion		(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius, sprExplosion1, sprExplosion2, sprBlast);
+native mines_create_smoke			(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius, const sprSmoke);
+native mines_create_explosion_decals(const Float:vOrigin[3]);
+native mines_create_bubbles			(const Float:vOrigin[3], const Float:flDamageMax, const Float:flDamageRadius, const sprBubbles);
+native mines_create_hblood			(const Float:vOrigin[3], const iDamageMax, const sprBloodSpray = 0, const sprBlood = 0);
 
 // Deployed Mines, Set Any Settings.
 forward mines_entity_spawn_settings	(iEnt, uID, iMinesId);

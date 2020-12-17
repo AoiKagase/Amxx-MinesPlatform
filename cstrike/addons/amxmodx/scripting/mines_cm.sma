@@ -20,6 +20,7 @@
 #include <mines_common>
 #include <mines_natives>
 #include <beams>
+
 #if defined ZP_SUPPORT
 	#include <zp50_colorchat>
 	#include <zp50_ammopacks>
@@ -40,8 +41,6 @@
 //
 // AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
 #define PLUGIN 						"[M.P] Claymore"
-#define AUTHOR 						"Aoi.Kagase"
-#define VERSION 					"0.05"
 
 #define CVAR_TAG					"mines_cm"
 
@@ -52,12 +51,12 @@
 
 #define MAX_CLAYMORE				40
 #define ENT_CLASS_CLAYMORE			"claymore"
-#define CLAYMORE_WIRE_STARTPOINT	pev_vuser4
+#define CLAYMORE_WIRE_STARTPOINT	"CED_MINES_CM_V_WIRE_START"
 
-#define CLAYMORE_POWERUP			pev_fuser2
-#define CLAYMORE_WIREENDPOINT1		pev_vuser2
-#define CLAYMORE_WIREENDPOINT2		pev_vuser3
-#define CLAYMORE_WIREENDPOINT3		pev_vuser4
+#define CLAYMORE_POWERUP			"CED_MINES_CM_F_POWERUP"
+#define CLAYMORE_WIREENDPOINT1		"CED_MINES_CM_V_WIRE_END_1"
+#define CLAYMORE_WIREENDPOINT2		"CED_MINES_CM_V_WIRE_END_2"
+#define CLAYMORE_WIREENDPOINT3		"CED_MINES_CM_V_WIRE_END_3"
 //
 // CVAR SETTINGS
 //
@@ -196,7 +195,7 @@ public plugin_init()
 	gCvar[CVAR_MINE_GLOW_CT]  		= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_glow_color_ct"),		"0,0,255"		);	// Team-Color for Counter-Terrorist. default:blue (R,G,B)
 	gCvar[CVAR_MINE_BROKEN]			= create_cvar(fmt("%s%s", CVAR_TAG, "_mine_broken"),			"2"				);	// Can broken Mines.(0 = mines, 1 = Team, 2 = Enemy)
 	gCvar[CVAR_EXPLODE_RADIUS] 		= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_radius"),			"320.0"			);	// Explosion radius.
-	gCvar[CVAR_EXPLODE_DMG]			= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),			"100"			);	// Explosion radius damage.
+	gCvar[CVAR_EXPLODE_DMG]			= create_cvar(fmt("%s%s", CVAR_TAG, "_explode_damage"),			"400"			);	// Explosion radius damage.
 
 	// Misc Settings.
 	gCvar[CVAR_DEATH_REMOVE]		= create_cvar(fmt("%s%s", CVAR_TAG, "_death_remove"),			"0"				);	// Dead Player remove claymore. 0 = off, 1 = on.
@@ -440,12 +439,12 @@ public mines_entity_spawn_settings(iEnt, uID, iMinesId)
 	mines_set_health(iEnt, 			gMinesData[MINE_HEALTH]);
 
 	// Save results to be used later.
-	set_pev(iEnt, MINES_OWNER, 		uID );
+	CED_SetCell(iEnt,MINES_OWNER,	uID);
 
 	// Reset powoer on delay time.
 	new Float:fCurrTime = get_gametime();
-	set_pev(iEnt, CLAYMORE_POWERUP, fCurrTime + 2.5 );
-	set_pev(iEnt, MINES_STEP, 		POWERUP_THINK);
+	CED_SetCell(iEnt, CLAYMORE_POWERUP, fCurrTime + 2.5);
+	CED_SetCell(iEnt, MINES_STEP, 		POWERUP_THINK);
 
 	// think rate. hmmm....
 	set_pev(iEnt, pev_nextthink, 	fCurrTime + 0.2 );
@@ -526,9 +525,9 @@ public mines_entity_set_position(iEnt, uID, iMinesId)
 
 				// set angle.
 				set_pev(iEnt, pev_angles, 	vEntAngles);
-				set_pev(iEnt, MINES_DECALS, vDecals);
+				CED_SetArray(iEnt, MINES_DECALS, vDecals, sizeof(vDecals));
 
-				set_pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vNewOrigin);
+				CED_SetArray(iEnt, CLAYMORE_WIRE_STARTPOINT, vNewOrigin, sizeof(vNewOrigin));
 				iReturn = 1;
 			}
 		}
@@ -646,9 +645,9 @@ stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 		vResult[i] = hitPoint;
 	}
 
-	set_pev(iEnt, CLAYMORE_WIREENDPOINT1, vResult[0]);
-	set_pev(iEnt, CLAYMORE_WIREENDPOINT2, vResult[1]);
-	set_pev(iEnt, CLAYMORE_WIREENDPOINT3, vResult[2]);
+	CED_SetArray(iEnt, CLAYMORE_WIREENDPOINT1, vResult[0], sizeof(vResult[]));
+	CED_SetArray(iEnt, CLAYMORE_WIREENDPOINT2, vResult[1], sizeof(vResult[]));
+	CED_SetArray(iEnt, CLAYMORE_WIREENDPOINT3, vResult[2], sizeof(vResult[]));
 }
 
 //====================================================
@@ -666,31 +665,32 @@ public MinesThink(iEnt, iMinesId)
 	static Float:fCurrTime;
 	static Float:vEnd[3][3];
 	static step;
-
+	static iOwner;
 	fCurrTime = get_gametime();
-	step = pev(iEnt, MINES_STEP);
+
+	if(!CED_GetCell(iEnt, MINES_STEP, step))
+		return;
+
+	if(!CED_GetCell(iEnt, MINES_OWNER, iOwner))
+		return;
+
 	// Get Laser line end potision.
-	pev(iEnt, CLAYMORE_WIREENDPOINT1, vEnd[0]);
-	pev(iEnt, CLAYMORE_WIREENDPOINT2, vEnd[1]);
-	pev(iEnt, CLAYMORE_WIREENDPOINT3, vEnd[2]);
+	CED_GetArray(iEnt, CLAYMORE_WIREENDPOINT1, vEnd[0], sizeof(vEnd[]));
+	CED_GetArray(iEnt, CLAYMORE_WIREENDPOINT2, vEnd[1], sizeof(vEnd[]));
+	CED_GetArray(iEnt, CLAYMORE_WIREENDPOINT3, vEnd[2], sizeof(vEnd[]));
 
 	// claymore state.
 	// Power up.
 	switch(step)
 	{
 		case POWERUP_THINK:
-		{
 			mines_step_powerup(iEnt, fCurrTime);
-		}
+
 		case BEAMUP_THINK:
-		{
 			mines_step_beamup(iEnt, vEnd, fCurrTime);
-		}
 		// Laser line activated.
 		case BEAMBREAK_THINK:
-		{
 			mines_step_beambreak(iEnt, vEnd, fCurrTime);
-		}
 		// EXPLODE
 		case EXPLOSE_THINK:
 		{
@@ -698,7 +698,7 @@ public MinesThink(iEnt, iMinesId)
 			cm_play_sound(iEnt, SOUND_STOP);
 
 			// effect explosion.
-			mines_explosion(pev(iEnt, MINES_OWNER), iMinesId, iEnt);
+			mines_explosion(iOwner, iMinesId, iEnt);
 		}
 	}
 
@@ -708,13 +708,13 @@ public MinesThink(iEnt, iMinesId)
 mines_step_powerup(iEnt, Float:fCurrTime)
 {
 	static Float:fPowerupTime;
-	pev(iEnt, CLAYMORE_POWERUP, fPowerupTime);
+	CED_GetCell(iEnt, CLAYMORE_POWERUP, fPowerupTime);
 	// over power up time.
 		
 	if (fCurrTime > fPowerupTime)
 	{
 		// next state.
-		set_pev(iEnt, MINES_STEP, BEAMUP_THINK);
+		CED_SetCell(iEnt, MINES_STEP, BEAMUP_THINK);
 		// activate sound.
 		cm_play_sound(iEnt, SOUND_ACTIVATE);
 
@@ -735,10 +735,10 @@ mines_step_beamup(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	}
 	// solid complete.
 	set_pev(iEnt, pev_solid, SOLID_BBOX);
-	// next state.
-	set_pev(iEnt, MINES_STEP, BEAMBREAK_THINK);
 	// Think time.
 	set_pev(iEnt, pev_nextthink, fCurrTime + 0.1);
+	// next state.
+	CED_SetCell(iEnt, MINES_STEP, BEAMBREAK_THINK);
 }
 
 mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
@@ -750,9 +750,13 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	static Float:hitPoint[3];
 
 	// Get owner id.
-	new iOwner = pev(iEnt, MINES_OWNER);
+	new iOwner;
+
+	if (!CED_GetCell(iEnt, MINES_OWNER, iOwner))
+		return false;
 	// Get this mine position.
-	pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vOrigin);
+	if (!CED_GetArray(iEnt, CLAYMORE_WIRE_STARTPOINT, vOrigin, sizeof(vOrigin)))
+		return false;
 
 	for(new i = 0; i < gWireLoop; i++)
 	{
@@ -796,7 +800,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 		set_pev(iEnt, pev_enemy, iTarget);
 
 		// State change. to Explosing step.
-		set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);
+		CED_SetCell(iEnt, MINES_STEP, EXPLOSE_THINK);
 	}
 
 	// Get mine health.
@@ -807,8 +811,8 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 	if (fHealth <= 0.0 || (pev(iEnt, pev_flags) & FL_KILLME))
 	{
 		// next step explosion.
-		set_pev(iEnt, MINES_STEP, EXPLOSE_THINK);
 		set_pev(iEnt, pev_nextthink, fCurrTime + random_float( 0.1, 0.3 ));
+		CED_SetCell(iEnt, MINES_STEP, EXPLOSE_THINK);
 	}
 				
 	// Think time. random_float = laser line blinking.
@@ -841,7 +845,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 	}
 
 	static Float:vStartOrigin[3];
-	pev(iEnt, CLAYMORE_WIRE_STARTPOINT, vStartOrigin);
+	CED_GetArray(iEnt, CLAYMORE_WIRE_STARTPOINT, vStartOrigin, sizeof(vStartOrigin));
 	// lm_draw_laser(iEnt, vEndOrigin, gBeam, 0, 0, 0, width, 0, tcolor, bind_pcvar_num(gCvar[CVAR_CM_WIRE_BRIGHT]), 0);
 	return cm_draw_wire(vStartOrigin, vEndOrigin, 0.0, gCvarValue[VALUE_CM_WIRE_WIDTH], 0, tcolor, gCvarValue[VALUE_CM_WIRE_BRIGHT], 0.0);
 }

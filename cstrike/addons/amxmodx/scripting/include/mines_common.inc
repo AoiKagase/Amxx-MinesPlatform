@@ -10,10 +10,11 @@
 #endif
 #define _mines_common_included
 #include <mines_const>
+#include <customentdata>
 #include <xs>
 
 // Spark Effect.
-stock mines_spark_wall				(Float:vEndOrigin[])
+stock mines_spark_wall				(const Float:vEndOrigin[3])
 {
  	// Sparks
 	engfunc(EngFunc_MessageBegin, MSG_PVS, SVC_TEMPENTITY, vEndOrigin, 0);
@@ -37,7 +38,7 @@ stock mines_spark_wall				(Float:vEndOrigin[])
 }
 
 // Spark Effect.
-stock mines_spark(Float:vEndOrigin[])
+stock mines_spark(const Float:vEndOrigin[3])
 {
 	message_begin(MSG_ALL, SVC_TEMPENTITY);
 	write_byte(TE_SPARKS);
@@ -158,7 +159,7 @@ stock mines_glow(iEnt, const minesData[COMMON_MINES_DATA])
 	}
 }
 
-stock get_cvar_to_vector(const args[], Float:vector[3])
+stock get_cvar_to_vector(const args[], const Float:vector[3])
 {
 	new values[3];
 	get_cvar_to_array(args, values, 3);
@@ -170,5 +171,9 @@ stock get_cvar_to_vector(const args[], Float:vector[3])
 //====================================================
 stock CsTeams:mines_get_owner_team(iEnt)
 {
-	return cs_get_user_team(pev(iEnt, MINES_OWNER));
+	new iOwner;
+	if (!CED_GetCell(iEnt, MINES_OWNER, iOwner))
+		return CS_TEAM_UNASSIGNED;
+
+	return cs_get_user_team(iOwner);
 }

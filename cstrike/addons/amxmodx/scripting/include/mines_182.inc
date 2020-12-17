@@ -71,7 +71,7 @@ stock fmt(const format[], any:...)
 #emit PUSH.C 		0x2
 #emit PUSH.S 		format
     const FORMATTED_CHARSMAX = charsmax(formatted);
-#emit PUSH.C 		FORMATTED_CHARSMAX
+#emit PUSH.C 		0xFF
 #emit LOAD.S.PRI 	0x8 // Get size of arguments (count of arguments multiply by sizeof(cell))
 #emit ADDR.ALT 		0xC // This is the pointer to first argument
 #emit ADD 				// Now in PRI we have the pointer to hidden return argument

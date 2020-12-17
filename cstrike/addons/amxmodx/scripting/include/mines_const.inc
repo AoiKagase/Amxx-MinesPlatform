@@ -15,13 +15,17 @@
 #if AMXX_VERSION_NUM < 182
 	#assert "AMX Mod X v1.8.2 or greater library required!"
 #endif
-#include <mines_182>
-
-#define CHAT_TAG 					"[M.P]"
-#define ENT_CLASS_BREAKABLE			"func_breakable"
+#if AMXX_VERSION_NUM < 190
+	#include <mines_182>
+#endif
+#define CHAT_TAG 						"[M.P]"
+#define ENT_CLASS_BREAKABLE				"func_breakable"
+// AUTHOR NAME +ARUKARI- => SandStriker => Aoi.Kagase
+#define AUTHOR 							"Aoi.Kagase"
+#define VERSION 						"0.07"
 
 // CS Status Data.
-// #define mines_get_user_deaths(%1)		get_ent_data(%1, "CbasePlayer",	"m_iDeaths")
+// #define mines_get_user_deaths(%1)	get_ent_data(%1, "CbasePlayer",	"m_iDeaths")
 // #define mines_set_user_deaths(%1,%2)	set_ent_data(%1, "CbasePlayer",	"m_iDeaths", %2)
 #if AMXX_VERSION_NUM < 190
 #define XTRA_OFS_PLAYER        			5
@@ -38,22 +42,22 @@
 #define mines_get_user_max_speed(%1,%2)	pev(%1,pev_maxspeed,%2)
 #define mines_set_user_max_speed(%1,%2)	engfunc(EngFunc_SetClientMaxspeed,%1,%2);set_pev(%1, pev_maxspeed,%2)
 
-#define IsPlayer(%1) ( 1 <= %1 <= 32 ) 
+#define IsPlayer(%1) 					( 1 <= %1 <= 32 ) 
 
 // Lasermine Data Save Area.
-#define MINES_OWNER					pev_iuser1
-#define MINES_OWNER_ID				pev_message
-#define MINES_STEP					pev_iuser3
-#define MINES_DECALS				pev_vuser1
+#define MINES_OWNER						"CED_MINES_COMM_I_OWNER"
+#define MINES_STEP						"CED_MINES_COMM_I_STEP"
+#define MINES_DECALS					"CED_MINES_COMM_V_STEP"
+#define MINES_OWNER_ID					"CED_MINES_COMM_S_AUTHID"
 
-#define MAX_CLASS_LENGTH			16
-#define MAX_MODEL_LENGTH			32
-#define MAX_EXPLOSION_DECALS 		3
-#define MAX_BLOOD_DECALS 			10
+#define MAX_CLASS_LENGTH				16
+#define MAX_MODEL_LENGTH				32
+#define MAX_EXPLOSION_DECALS 			3
+#define MAX_BLOOD_DECALS 				10
 
-#define DEPLOY_FLY					0x01
-#define DEPLOY_WALL					0x02
-#define DEPLOY_GROUND				0x04
+#define DEPLOY_FLY						0x01
+#define DEPLOY_WALL						0x02
+#define DEPLOY_GROUND					0x04
 
 //====================================================
 // ENUM AREA
@@ -152,6 +156,8 @@ enum _:COMMON_MINES_DATA
 	EXPLODE_SPRITE_SMOKE	,
 	EXPLODE_SPRITE_WATER	,
 	EXPLODE_SPRITE_BUBBLE	,
+	BLOOD_SPLASH			,
+	BLOOD_SPRAY				,
 #if defined ZP_SUPPORT
 	ZP_WEAPON_ID			,
 #endif
@@ -192,22 +198,22 @@ enum _:PICKUP_MODE
 
 enum _:E_SOUNDS
 {
-	PICKUP							,
-	BUTTON							,
-	GLASS_1							,
-	GLASS_2							,
+	PICKUP					= 0,
+	BUTTON					,
+	GLASS_1					,
+	GLASS_2					,
 }
 
 enum _:E_SPRITES
 {
-	EXPLOSION_1						,
-	EXPLOSION_2						,
-	EXPLOSION_WATER					,
-	BLAST							,
-	SMOKE							,
-	BUBBLE							,
-	BLOOD_SPLASH					,
-	BLOOD_SPRAY						,
+	SPR_EXPLOSION_1			= 0,
+	SPR_EXPLOSION_2			,
+	SPR_EXPLOSION_WATER		,
+	SPR_BLAST				,
+	SPR_SMOKE				,
+	SPR_BUBBLE				,
+	SPR_BLOOD_SPLASH		,
+	SPR_BLOOD_SPRAY			,
 };
 
 //#include <mines_common>
