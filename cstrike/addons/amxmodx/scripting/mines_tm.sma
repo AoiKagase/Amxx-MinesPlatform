@@ -761,7 +761,7 @@ draw_laserline(iEnt, const Float:vEndOrigin[3])
 		const bright		= 255,
 		const speed			= 255
 	*/
-	draw_laser(iEnt, vEndOrigin, ENT_SPRITE1, 0, 0, gCvarValue[VL_LASER_WIDTH], 0, tcolor, gCvarValue[VL_LASER_BRIGHT], 255.0);
+	return draw_laser(iEnt, vEndOrigin, ENT_SPRITE1, 0, 0, gCvarValue[VL_LASER_WIDTH], 0, tcolor, gCvarValue[VL_LASER_BRIGHT], 255.0);
 }
 
 //====================================================
