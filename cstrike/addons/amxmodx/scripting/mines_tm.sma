@@ -189,9 +189,6 @@ public plugin_init()
 	create_cvar("mines_tripmine", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 	gMinesId 					= register_mines (ENT_CLASS_TRIP, LANG_KEY_LONGNAME);
 
-	// Multi Language Dictionary.
-	mines_register_dictionary("mines/mines_tm.txt");
-	
 #if AMXX_VERSION_NUM > 182
 	bind_cvars();
 	AutoExecConfig(true, "mines_cvars_tm", "mines");
@@ -371,6 +368,9 @@ public mines_plugin_end()
 //====================================================
 public plugin_precache() 
 {
+	// Multi Language Dictionary.
+	mines_register_dictionary("mines/mines_tm.txt");
+	
 	precache_sound(ENT_SOUND1);
 	precache_sound(ENT_SOUND2);
 	precache_sound(ENT_SOUND3);

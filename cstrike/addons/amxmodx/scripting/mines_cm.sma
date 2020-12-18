@@ -223,9 +223,6 @@ public plugin_init()
 
 	gMinesId 					= register_mines(ENT_CLASS_CLAYMORE, LANG_KEY_LONGNAME);
 
-	// Multi Language Dictionary.
-	mines_register_dictionary("mines/mines_cm.txt");
-
 #if AMXX_VERSION_NUM > 182
 	bind_cvars();
 	AutoExecConfig(true, "mines_cvars_cm", "mines");
@@ -392,6 +389,9 @@ update_mines_parameter()
 //====================================================
 public plugin_precache() 
 {
+	// Multi Language Dictionary.
+	mines_register_dictionary("mines/mines_cm.txt");
+
 	for (new i = 0; i < sizeof(gEntSound); i++)
 		precache_sound(gEntSound[i]);
 

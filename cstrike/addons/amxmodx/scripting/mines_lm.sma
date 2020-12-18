@@ -232,8 +232,6 @@ public plugin_init()
 
 	create_cvar("mines_lasermine", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 
-	// Multi Language Dictionary.
-	mines_register_dictionary("mines/mines_lm.txt");
 #if AMXX_VERSION_NUM > 182
 	bind_cvars();
 	AutoExecConfig(true, "mines_cvars_lm", "mines");
@@ -408,6 +406,9 @@ public mines_plugin_end()
 //====================================================
 public plugin_precache() 
 {
+	// Multi Language Dictionary.
+	mines_register_dictionary("mines/mines_lm.txt");
+
 	gMinesId = 	register_mines(ENT_CLASS_LASER, LANG_KEY_LONGNAME);
 
 	mines_resources(gMinesId, "ENT_SOUND1",  gResources[SOUND1],  charsmax(gResources[SOUND1]),  ENT_SOUND1);

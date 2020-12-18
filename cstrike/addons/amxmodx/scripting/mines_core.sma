@@ -268,6 +268,9 @@ stock print_info(const id, const iMinesId = 0, const L_KEY:key, const any:param[
 //====================================================
 public plugin_precache() 
 {
+	// Multi Language Dictionary.
+	register_dictionary("mines/mines_core.txt");
+
 	gMinesCSXID						= ArrayCreate();
 	gMinesClass 					= ArrayCreate(MAX_CLASS_LENGTH);
 	gMinesParameter 				= ArrayCreate(COMMON_MINES_DATA);
@@ -354,9 +357,6 @@ public plugin_init()
 
 	// Register Forward.
 	register_forward(FM_CmdStart,		"PlayerCmdStart");
-
-	// Multi Language Dictionary.
-	register_dictionary("mines/mines_core.txt");
 
 	create_cvar("mines_platform_core", VERSION, FCVAR_SERVER|FCVAR_SPONLY);
 #if AMXX_VERSION_NUM > 182
