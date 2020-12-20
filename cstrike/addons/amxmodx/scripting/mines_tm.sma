@@ -1,4 +1,7 @@
 // #pragma semicolon 1
+#pragma compress	1
+#pragma tabsize		4
+
 //=============================================
 //	Plugin Writed by Visual Studio Code.
 //=============================================
@@ -25,6 +28,7 @@
 	#include <zp50_ammopacks>
 #endif
 
+#pragma semicolon 	1
 //=====================================
 //  Resource Setting AREA
 //=====================================

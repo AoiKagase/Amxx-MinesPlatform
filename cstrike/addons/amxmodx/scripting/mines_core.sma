@@ -1,4 +1,6 @@
 
+#pragma compress 	1
+#pragma tabsize		4
 //=============================================
 //	Plugin Writed by Visual Studio Code.
 //=============================================

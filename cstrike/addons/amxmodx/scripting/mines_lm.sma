@@ -1,4 +1,7 @@
 // #pragma semicolon 1
+#pragma compress	1
+#pragma tabsize		4
+
 //=============================================
 //	Plugin Writed by Visual Studio Code.
 //=============================================
@@ -38,6 +41,7 @@
 #define ENT_SOUND6					"weapons/ric_metal-2.wav"
 #define ENT_SPRITE1 				"sprites/mines/laser.spr"
 
+#pragma semicolon 	1
 //=====================================
 //  MACRO AREA
 //=====================================

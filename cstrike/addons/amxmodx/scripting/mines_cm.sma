@@ -1,4 +1,6 @@
 // #pragma semicolon 1
+#pragma compress 	1
+#pragma tabsize 	4
 //=============================================
 //	Plugin Writed by Visual Studio Code.
 //=============================================
@@ -25,6 +27,9 @@
 	#include <zp50_colorchat>
 	#include <zp50_ammopacks>
 #endif
+
+#pragma semicolon 	1
+
 //=====================================
 //  Resource Setting AREA
 //=====================================
@@ -619,7 +624,7 @@ stock set_claymore_endpoint(iEnt, Float:vOrigin[3])
 			// xs_vec_add(vOrigin, vForward, vForward);
 			trace = create_tr2();
 			// Trace line
-			engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace)
+			engfunc(EngFunc_TraceLine, vOrigin, vForward, IGNORE_MONSTERS, iEnt, trace);
 			{
 				get_tr2(trace, TR_vecEndPos, vTmp);
 				get_tr2(trace, TR_flFraction, fraction);
@@ -805,7 +810,7 @@ mines_step_beambreak(iEnt, Float:vEnd[3][3], Float:fCurrTime)
 
 	// Get mine health.
 	static Float:fHealth;
-	mines_get_health(iEnt, fHealth)
+	mines_get_health(iEnt, fHealth);
 
 	// break?
 	if (fHealth <= 0.0 || (pev(iEnt, pev_flags) & FL_KILLME))
